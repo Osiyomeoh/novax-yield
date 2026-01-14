@@ -341,7 +341,11 @@ export class MarketplaceContractService {
       console.log('🔍 Querying marketplace contract via backend API:', { nftTokenId, serialNumber });
       
       // Use backend API which has operator credentials to query the contract
-      const backendUrl = `http://localhost:4001/api/hedera/marketplace/check-listing/${nftTokenId}/${serialNumber}`;
+      const apiUrl = import.meta.env.VITE_API_URL || '';
+      if (!apiUrl) {
+        throw new Error('VITE_API_URL is not configured');
+      }
+      const backendUrl = `${apiUrl}/hedera/marketplace/check-listing/${nftTokenId}/${serialNumber}`;
       console.log('📡 Calling backend API:', backendUrl);
       
       const response = await fetch(backendUrl);

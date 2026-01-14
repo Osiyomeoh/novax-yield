@@ -21,7 +21,6 @@ try {
     'function createRWAAsset(uint8,string,string,string,uint256,uint256,uint256,string[],string[],string,string,string) external returns (bytes32)',
     'function createDigitalAsset(uint8,string,string,string,uint256,string,string,uint256) external returns (bytes32)',
     'function getAsset(bytes32) external view returns (bytes32,address,address,uint8,uint8,string,string,string,uint256,uint256,uint256,uint8,string[],string[],string,string,string,address,uint256,uint8,address,uint256,uint256,uint256,uint256,uint256,bool,bool,uint256,uint256,address,uint256)',
-    'function assets(bytes32) external view returns (bytes32,address,address,uint8,uint8,string,string,string,uint256,uint256,uint256,uint8,string[],string[],string,string,string,address,uint256,uint8,address,uint256,uint256,uint256,uint256,uint256,bool,bool,uint256,uint256,address,uint256)',
     'function verifyAsset(bytes32,uint8) external',
     'event AssetCreated(bytes32 indexed,address indexed,uint8,string,string,uint256,uint8)',
   ];
@@ -81,6 +80,7 @@ export interface MantleConfig {
     verificationRegistry: string;
     trustMarketplace: string;
     trustFaucet: string;
+    amcManager: string;
   };
 }
 
@@ -165,15 +165,16 @@ export class MantleService {
         chainId: parseInt(this.configService.get<string>('MANTLE_CHAIN_ID') || '5001'),
         privateKey: this.configService.get<string>('MANTLE_PRIVATE_KEY') || '',
         contractAddresses: {
-          // Updated to match mantle-sepolia-latest.json deployment
-          trustToken: this.configService.get<string>('TRUST_TOKEN_ADDRESS') || '0x8960Eb29508098E35f4368906bD68A3CE9725f2F',
-          assetNFT: this.configService.get<string>('ASSET_NFT_ADDRESS') || '0x8d0500fD3F4e8C8a3DF9a3ae1a719c31020F5300',
-          coreAssetFactory: this.configService.get<string>('CORE_ASSET_FACTORY_ADDRESS') || '0x546d33A647Efa9fd363a908741803bF75302e7D0', // Updated to latest deployment
+          // Updated to match mantle-sepolia-latest.json deployment (2026-01-14)
+          trustToken: this.configService.get<string>('TRUST_TOKEN_ADDRESS') || '0x239e59B9E6d2257CA68a3cb6509E7EBc54c90546',
+          assetNFT: this.configService.get<string>('ASSET_NFT_ADDRESS') || '0x2Eb2533fcc327CdF670200683A7CEa14b6bA8edb',
+          coreAssetFactory: this.configService.get<string>('CORE_ASSET_FACTORY_ADDRESS') || '0x546d33A647Efa9fd363a908741803bF75302e7D0',
           trustAssetFactory: this.configService.get<string>('TRUST_ASSET_FACTORY_ADDRESS') || '0x55cdfcA8f6ac9C848A6EB8Df45F285db3a03276a',
-          poolManager: this.configService.get<string>('POOL_MANAGER_ADDRESS') || '0x56535279704A7936621b84FFD5e9Cc1eD3c4093a',
-          verificationRegistry: this.configService.get<string>('VERIFICATION_REGISTRY_ADDRESS') || '0x8f84aAD48D7870E9138DAaD4A8FE82Ca400Bd64e',
-          trustMarketplace: this.configService.get<string>('TRUST_MARKETPLACE_ADDRESS') || '0xd960d67Fd4E4736C93A1E15726034AB060Ee0846',
-          trustFaucet: this.configService.get<string>('TRUST_FAUCET_ADDRESS') || '0x71a12347C96F9Bac3c5C7f14A5107fC65f8f4BEd',
+          poolManager: this.configService.get<string>('POOL_MANAGER_ADDRESS') || '0x06bb375127a9D3cBA7aAE9C108078bf31A67ab80',
+          verificationRegistry: this.configService.get<string>('VERIFICATION_REGISTRY_ADDRESS') || '0x875153894Fc3a7C3D6f6e2d383Aad09ad5bb5204',
+          trustMarketplace: this.configService.get<string>('TRUST_MARKETPLACE_ADDRESS') || '0x64bd7B3ecF990915416C7bd2152798bFEea19AB7',
+          trustFaucet: this.configService.get<string>('TRUST_FAUCET_ADDRESS') || '0x0CB9218389C0718144395B218532362d9F990264',
+          amcManager: this.configService.get<string>('AMC_MANAGER_ADDRESS') || '0xC26f729De8f88e4E59846715f622a1C56334a565',
         },
       };
 
@@ -736,14 +737,19 @@ export class MantleService {
         assetResult = await factoryContract.getAsset(assetIdBytes32);
         this.logger.log(`✅ getAsset() succeeded for ${assetIdBytes32}`);
       } catch (getAssetError: any) {
-        // Fallback to assets() mapping if getAsset() fails
-        this.logger.warn(`getAsset() failed, trying assets() mapping: ${getAssetError.message}`);
-        if (typeof factoryContract.assets === 'function') {
-          assetResult = await factoryContract.assets(assetIdBytes32);
-          this.logger.log(`✅ assets() succeeded for ${assetIdBytes32}`);
-        } else {
-          throw new Error(`Failed to fetch asset: neither getAsset() nor assets() are available`);
+        // Check if asset doesn't exist (zero ID) or if there's a decode error
+        if (getAssetError.message?.includes('could not decode') || 
+            getAssetError.message?.includes('BAD_DATA') ||
+            getAssetError.code === 'BAD_DATA') {
+          // This might mean the asset doesn't exist or ABI mismatch
+          // Try to check if asset exists by checking for zero ID
+          this.logger.error(`❌ Failed to decode asset result for ${assetIdBytes32}: ${getAssetError.message}`);
+          this.logger.error(`   This usually means the asset doesn't exist or there's an ABI mismatch`);
+          throw new Error(`Asset ${assetIdBytes32} not found or could not be decoded. The asset may not exist on-chain or the contract ABI may be outdated.`);
         }
+        // For other errors, re-throw with context
+        this.logger.error(`❌ getAsset() failed for ${assetIdBytes32}: ${getAssetError.message}`);
+        throw new Error(`Failed to fetch asset ${assetIdBytes32}: ${getAssetError.message}`);
       }
       
       // Log raw result for debugging

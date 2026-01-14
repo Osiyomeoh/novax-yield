@@ -3,6 +3,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ConfigService } from '@nestjs/config';
 import { ethers } from 'ethers';
+import * as path from 'path';
+import * as fs from 'fs';
 import { AMCPool, AMCPoolDocument, PoolStatus, PoolType } from '../schemas/amc-pool.schema';
 import { Asset, AssetDocument } from '../schemas/asset.schema';
 import { AssetV2, AssetV2Document } from '../schemas/asset-v2.schema';
@@ -229,12 +231,12 @@ export class AMCPoolsService {
       const assetAddErrors: string[] = [];
       
       for (const poolAsset of createPoolDto.assets) {
+        // Convert assetId to bytes32 if needed (declare outside try so it's accessible in catch)
+        const assetIdBytes32 = poolAsset.assetId.startsWith('0x') && poolAsset.assetId.length === 66
+          ? poolAsset.assetId
+          : ethers.id(poolAsset.assetId);
+        
         try {
-          // Convert assetId to bytes32 if needed
-          const assetIdBytes32 = poolAsset.assetId.startsWith('0x') && poolAsset.assetId.length === 66
-            ? poolAsset.assetId
-            : ethers.id(poolAsset.assetId);
-          
           // Re-check asset status right before adding (double-check on-chain status)
           // Use bytes32 format for getAsset to ensure consistency
           this.logger.log(`Re-checking asset ${poolAsset.assetId} (bytes32: ${assetIdBytes32}) status before adding to pool...`);
@@ -246,42 +248,125 @@ export class AMCPoolsService {
             // Try with bytes32 format first (most reliable)
             onChainAsset = await this.mantleService.getAsset(assetIdBytes32);
             
-            // Extract status - handle different return formats
-            // Status is at index 19 in the struct (after tokenId at 18)
-            if (typeof onChainAsset.status === 'number' && !isNaN(onChainAsset.status)) {
-              assetStatus = onChainAsset.status;
-              this.logger.log(`✅ Status extracted as number: ${assetStatus}`);
-            } else if (typeof onChainAsset.status === 'bigint') {
-              assetStatus = Number(onChainAsset.status);
-              this.logger.log(`✅ Status extracted from bigint: ${onChainAsset.status} -> ${assetStatus}`);
-            } else if (typeof onChainAsset.status === 'string') {
-              assetStatus = parseInt(onChainAsset.status, 10);
-              this.logger.log(`✅ Status extracted from string: "${onChainAsset.status}" -> ${assetStatus}`);
-            } else {
-              // Try to get status from array indices (if struct returned as array)
-              // Status is at index 19, but also try 17 (frontend fallback) and 18 (tokenId)
-              if (onChainAsset[19] !== undefined) {
-                assetStatus = typeof onChainAsset[19] === 'bigint' ? Number(onChainAsset[19]) : Number(onChainAsset[19] || 0);
-                this.logger.log(`✅ Status extracted from index [19]: ${assetStatus}`);
-              } else if (onChainAsset[17] !== undefined) {
-                // Check if it's a valid status (0-10) and not an address
-                const val17 = typeof onChainAsset[17] === 'bigint' ? Number(onChainAsset[17]) : Number(onChainAsset[17] || 0);
-                if (val17 <= 10) {
-                  assetStatus = val17;
-                  this.logger.log(`⚠️ Status extracted from index [17] (might be wrong): ${assetStatus}`);
-                } else {
-                  assetStatus = 0;
-                  this.logger.warn(`⚠️ Index [17] value ${val17} is not a valid status, defaulting to 0`);
+            // CRITICAL: Get raw contract result to verify status extraction
+            // Call getAsset directly on contract to get raw struct (bypassing extraction logic)
+            let rawAssetResult: any = null;
+            try {
+              // Access provider and config through MantleService
+              const provider = (this.mantleService as any).provider;
+              const coreAssetFactoryAddress = (this.mantleService as any).config?.contractAddresses?.coreAssetFactory;
+              
+              if (provider && coreAssetFactoryAddress) {
+                // Load ABI from artifact
+                const artifactPath = path.join(__dirname, '../../contracts/artifacts/contracts/CoreAssetFactory.sol/CoreAssetFactory.json');
+                let CoreAssetFactoryABI: any[] = [];
+                try {
+                  if (fs.existsSync(artifactPath)) {
+                    const artifact = fs.readFileSync(artifactPath, 'utf8');
+                    CoreAssetFactoryABI = JSON.parse(artifact).abi;
+                  }
+                } catch (e: any) {
+                  this.logger.warn(`Could not load ABI: ${e.message}`);
                 }
-              } else {
-                assetStatus = 0;
-                this.logger.error(`❌ Could not extract status from any source. onChainAsset.status=${onChainAsset.status}, [17]=${onChainAsset[17]}, [19]=${onChainAsset[19]}`);
+                
+                if (CoreAssetFactoryABI.length > 0) {
+                  const factoryContract = new ethers.Contract(
+                    coreAssetFactoryAddress,
+                    CoreAssetFactoryABI,
+                    provider
+                  );
+                  rawAssetResult = await factoryContract.getAsset(assetIdBytes32);
+                  this.logger.log(`📦 Raw contract result:`, {
+                    isArray: Array.isArray(rawAssetResult),
+                    length: Array.isArray(rawAssetResult) ? rawAssetResult.length : 'N/A',
+                    '[19]': rawAssetResult[19],
+                    '[19] type': typeof rawAssetResult[19],
+                    'status prop': rawAssetResult.status,
+                    'status prop type': typeof rawAssetResult.status
+                  });
+                }
               }
+            } catch (rawError: any) {
+              this.logger.warn(`⚠️ Could not get raw contract result: ${rawError.message}`);
+            }
+            
+            // CRITICAL: Use the status that getAsset() already extracted
+            // getAsset() has complex extraction logic, so trust its result
+            // But also log raw values for debugging
+            this.logger.log(`🔍 Asset status extraction for ${poolAsset.assetId}:`);
+            this.logger.log(`   onChainAsset.status: ${onChainAsset.status} (type: ${typeof onChainAsset.status})`);
+            this.logger.log(`   onChainAsset[19]: ${onChainAsset[19]} (type: ${typeof onChainAsset[19]})`);
+            this.logger.log(`   onChainAsset[17]: ${onChainAsset[17]} (type: ${typeof onChainAsset[17]})`);
+            if (rawAssetResult) {
+              this.logger.log(`   rawAssetResult[19]: ${rawAssetResult[19]} (type: ${typeof rawAssetResult[19]})`);
+              this.logger.log(`   rawAssetResult.status: ${rawAssetResult.status} (type: ${typeof rawAssetResult.status})`);
+            }
+            
+            // Extract status - prioritize raw contract result if available
+            if (rawAssetResult) {
+              // Use raw result first (most reliable)
+              if (rawAssetResult[19] !== undefined && rawAssetResult[19] !== null) {
+                const rawStatus = typeof rawAssetResult[19] === 'bigint' ? Number(rawAssetResult[19]) : Number(rawAssetResult[19] || 0);
+                if (!isNaN(rawStatus) && rawStatus >= 0 && rawStatus <= 10) {
+                  assetStatus = rawStatus;
+                  this.logger.log(`✅ Status extracted from raw contract result[19]: ${assetStatus}`);
+                }
+              }
+              // If raw[19] didn't work, try raw.status property
+              if ((assetStatus === undefined || isNaN(assetStatus)) && rawAssetResult.status !== undefined && rawAssetResult.status !== null) {
+                const rawStatus = typeof rawAssetResult.status === 'bigint' ? Number(rawAssetResult.status) : 
+                                 typeof rawAssetResult.status === 'number' ? rawAssetResult.status :
+                                 typeof rawAssetResult.status === 'string' ? parseInt(rawAssetResult.status, 10) : 0;
+                if (!isNaN(rawStatus) && rawStatus >= 0 && rawStatus <= 10) {
+                  assetStatus = rawStatus;
+                  this.logger.log(`✅ Status extracted from raw contract result.status: ${assetStatus}`);
+                }
+              }
+            }
+            
+            // Fallback to extracted status from getAsset()
+            if (assetStatus === undefined || isNaN(assetStatus)) {
+              if (onChainAsset.status !== undefined && onChainAsset.status !== null) {
+                if (typeof onChainAsset.status === 'number' && !isNaN(onChainAsset.status)) {
+                  assetStatus = onChainAsset.status;
+                  this.logger.log(`✅ Status extracted from onChainAsset.status (number): ${assetStatus}`);
+                } else if (typeof onChainAsset.status === 'bigint') {
+                  assetStatus = Number(onChainAsset.status);
+                  this.logger.log(`✅ Status extracted from onChainAsset.status (bigint): ${onChainAsset.status} -> ${assetStatus}`);
+                } else if (typeof onChainAsset.status === 'string') {
+                  assetStatus = parseInt(onChainAsset.status, 10);
+                  if (!isNaN(assetStatus)) {
+                    this.logger.log(`✅ Status extracted from onChainAsset.status (string): "${onChainAsset.status}" -> ${assetStatus}`);
+                  }
+                }
+              }
+            }
+            
+            // Final fallback: Try array indices
+            if (assetStatus === undefined || isNaN(assetStatus) || assetStatus === 0) {
+              // Try index 19 first (correct position)
+              if (onChainAsset[19] !== undefined && onChainAsset[19] !== null) {
+                const val19 = typeof onChainAsset[19] === 'bigint' ? Number(onChainAsset[19]) : Number(onChainAsset[19] || 0);
+                if (!isNaN(val19) && val19 >= 0 && val19 <= 10) {
+                  assetStatus = val19;
+                  this.logger.log(`✅ Status extracted from onChainAsset[19]: ${assetStatus}`);
+                }
+              }
+            }
+            
+            // Final validation
+            if (assetStatus === undefined || isNaN(assetStatus) || assetStatus < 0 || assetStatus > 10) {
+              this.logger.error(`❌ Invalid asset status extracted: ${assetStatus}`);
+              this.logger.error(`   Raw values: status=${onChainAsset.status}, [17]=${onChainAsset[17]}, [19]=${onChainAsset[19]}`);
+              if (rawAssetResult) {
+                this.logger.error(`   Raw contract: [19]=${rawAssetResult[19]}, status=${rawAssetResult.status}`);
+              }
+              throw new Error(`Could not extract valid status for asset ${poolAsset.assetId}. Status value: ${assetStatus}`);
             }
             
             this.logger.log(`📊 Asset ${poolAsset.assetId} on-chain status: ${assetStatus} (expected 6)`);
             this.logger.log(`   Asset details: name=${onChainAsset.name}, currentOwner=${onChainAsset.currentOwner}`);
-            this.logger.log(`   Status type: ${typeof onChainAsset.status}, raw value: ${onChainAsset.status}`);
+            this.logger.log(`   Final status: ${assetStatus} (type: ${typeof assetStatus})`);
           } catch (getAssetError: any) {
             const errorMsg = `Failed to fetch asset ${poolAsset.assetId} from blockchain: ${getAssetError.message}`;
             this.logger.error(`❌ ${errorMsg}`);
@@ -307,9 +392,39 @@ export class AMCPoolsService {
           assetAddResults.push(addAssetResult.txHash);
           this.logger.log(`✅ Added asset ${poolAsset.assetId} to pool ${poolResult.poolId}: ${addAssetResult.txHash}`);
         } catch (assetError: any) {
-          const errorMsg = `Failed to add asset ${poolAsset.assetId} to pool: ${assetError.message}`;
-          this.logger.error(`❌ ${errorMsg}`);
-          assetAddErrors.push(errorMsg);
+          // Check if error is "Asset already in pool"
+          if (assetError.message?.includes('Asset already in pool') || 
+              assetError.reason === 'Asset already in pool' ||
+              assetError.data?.includes('417373657420616c726561647920696e20706f6f6c')) {
+            // Try to find which pool the asset is in
+            let existingPoolId = 'unknown';
+            try {
+              const poolManagerAddress = (this.mantleService as any).config?.contractAddresses?.poolManager;
+              if (poolManagerAddress) {
+                const provider = (this.mantleService as any).provider;
+                if (provider) {
+                  const PoolManagerABI = ['function assetToPool(bytes32) external view returns (bytes32)'];
+                  const poolManagerContract = new ethers.Contract(poolManagerAddress, PoolManagerABI, provider);
+                  const mappedPoolId = await poolManagerContract.assetToPool(assetIdBytes32);
+                  if (mappedPoolId && mappedPoolId !== ethers.ZeroHash) {
+                    existingPoolId = mappedPoolId;
+                  }
+                }
+              }
+            } catch (checkError) {
+              // Ignore - we'll use 'unknown'
+            }
+            
+            const errorMsg = `Asset ${poolAsset.assetId} is already in pool ${existingPoolId} on-chain. An asset can only be in one pool at a time.`;
+            this.logger.error(`❌ ${errorMsg}`);
+            this.logger.error(`   This might be from a previous pool creation or an old contract deployment.`);
+            this.logger.error(`   Pool ID where asset is mapped: ${existingPoolId}`);
+            assetAddErrors.push(errorMsg);
+          } else {
+            const errorMsg = `Failed to add asset ${poolAsset.assetId} to pool: ${assetError.message}`;
+            this.logger.error(`❌ ${errorMsg}`);
+            assetAddErrors.push(errorMsg);
+          }
           // Don't throw - we'll log warnings but continue (assets can be added later)
         }
       }
@@ -1140,6 +1255,7 @@ export class AMCPoolsService {
         const validStatuses = [6]; // ACTIVE_AMC_MANAGED
         
         // Convert status to number, handling all possible types
+        // Use the SAME extraction logic as when adding assets to ensure consistency
         let assetStatus: number;
         if (typeof onChainAsset.status === 'number' && !isNaN(onChainAsset.status)) {
           assetStatus = onChainAsset.status;
@@ -1151,16 +1267,32 @@ export class AMCPoolsService {
           assetStatus = parseInt(onChainAsset.status, 10);
           this.logger.log(`   Status extracted from string: "${onChainAsset.status}" -> ${assetStatus}`);
         } else {
-          this.logger.error(`❌ Asset ${poolAsset.assetId} has invalid status type: ${typeof onChainAsset.status}, value: ${onChainAsset.status}`);
-          this.logger.error(`   Full asset object keys: ${Object.keys(onChainAsset).join(', ')}`);
-          this.logger.error(`   Asset name: ${onChainAsset.name}`);
-          this.logger.error(`   Asset ID from result: ${assetIdFromResult}`);
-          this.logger.error(`   Full asset object (first 500 chars): ${JSON.stringify(onChainAsset, null, 2).substring(0, 500)}`);
-          throw new BadRequestException(
-            `Asset ${poolAsset.assetId} has invalid on-chain status (${onChainAsset.status}). ` +
-            `Could not determine asset status from blockchain. Status type: ${typeof onChainAsset.status}. ` +
-            `Please check backend logs for details.`
-          );
+          // Try to get status from array indices (same as asset addition logic)
+          if (onChainAsset[19] !== undefined) {
+            assetStatus = typeof onChainAsset[19] === 'bigint' ? Number(onChainAsset[19]) : Number(onChainAsset[19] || 0);
+            this.logger.log(`   Status extracted from index [19]: ${assetStatus}`);
+          } else if (onChainAsset[17] !== undefined) {
+            const val17 = typeof onChainAsset[17] === 'bigint' ? Number(onChainAsset[17]) : Number(onChainAsset[17] || 0);
+            if (val17 <= 10) {
+              assetStatus = val17;
+              this.logger.log(`   Status extracted from index [17]: ${assetStatus}`);
+            } else {
+              assetStatus = 0;
+              this.logger.warn(`   Index [17] value ${val17} is not a valid status, defaulting to 0`);
+            }
+          } else {
+            assetStatus = 0;
+            this.logger.error(`❌ Asset ${poolAsset.assetId} has invalid status type: ${typeof onChainAsset.status}, value: ${onChainAsset.status}`);
+            this.logger.error(`   Full asset object keys: ${Object.keys(onChainAsset).join(', ')}`);
+            this.logger.error(`   Asset name: ${onChainAsset.name}`);
+            this.logger.error(`   Asset ID from result: ${assetIdFromResult}`);
+            this.logger.error(`   Full asset object (first 500 chars): ${JSON.stringify(onChainAsset, null, 2).substring(0, 500)}`);
+            throw new BadRequestException(
+              `Asset ${poolAsset.assetId} has invalid on-chain status (${onChainAsset.status}). ` +
+              `Could not determine asset status from blockchain. Status type: ${typeof onChainAsset.status}. ` +
+              `Please check backend logs for details.`
+            );
+          }
         }
         
         if (isNaN(assetStatus)) {
@@ -1177,15 +1309,22 @@ export class AMCPoolsService {
         
         this.logger.log(`   Final asset status: ${assetStatus} (expected: ${validStatuses.join(' or ')})`);
         
+        // CRITICAL: Fail early if status is not 6 - don't allow pool creation with invalid assets
         if (!validStatuses.includes(assetStatus)) {
           this.logger.error(`❌ Asset ${poolAsset.assetId} on-chain status is ${assetStatus}, expected ${validStatuses.join(' or ')}`);
           this.logger.error(`   Asset name: ${onChainAsset.name}`);
           this.logger.error(`   Asset ID: ${assetIdFromResult}`);
           this.logger.error(`   Status names: 0=PENDING_VERIFICATION, 1=VERIFIED_PENDING_AMC, 2=AMC_INSPECTION_SCHEDULED, 3=AMC_INSPECTION_COMPLETED, 4=LEGAL_TRANSFER_PENDING, 5=LEGAL_TRANSFER_COMPLETED, 6=ACTIVE_AMC_MANAGED`);
+          const statusName = assetStatus === 0 ? 'PENDING_VERIFICATION' : 
+                            assetStatus === 1 ? 'VERIFIED_PENDING_AMC' :
+                            assetStatus === 2 ? 'AMC_INSPECTION_SCHEDULED' :
+                            assetStatus === 3 ? 'AMC_INSPECTION_COMPLETED' :
+                            assetStatus === 4 ? 'LEGAL_TRANSFER_PENDING' :
+                            assetStatus === 5 ? 'LEGAL_TRANSFER_COMPLETED' :
+                            `UNKNOWN(${assetStatus})`;
           throw new BadRequestException(
-            `Asset ${poolAsset.assetId} is not ready for pooling. On-chain status: ${assetStatus}. ` +
+            `Asset ${poolAsset.assetId} is not ready for pooling. On-chain status: ${assetStatus} (${statusName}). ` +
             `Asset must be ACTIVE_AMC_MANAGED (status 6) to be added to a pool. ` +
-            `Current status: ${assetStatus === 0 ? 'PENDING_VERIFICATION' : assetStatus === 3 ? 'AMC_INSPECTION_COMPLETED' : assetStatus === 4 ? 'LEGAL_TRANSFER_PENDING' : assetStatus === 5 ? 'LEGAL_TRANSFER_COMPLETED' : `UNKNOWN(${assetStatus})`}. ` +
             `Please complete the AMC workflow: inspection → legal transfer → activation.`
           );
         }
@@ -1200,14 +1339,143 @@ export class AMCPoolsService {
         throw new BadRequestException(`Asset ${poolAsset.assetId} validation failed on blockchain: ${blockchainError.message}`);
       }
 
-      // Check if asset is already in another active pool
+      // Check if asset is already in another pool ON-CHAIN (source of truth)
+      // The contract has assetToPool mapping that prevents duplicate assets
+      try {
+        const poolManagerAddress = this.mantleService['config']?.contractAddresses?.poolManager;
+        if (poolManagerAddress) {
+          // Convert assetId to bytes32
+          const assetIdBytes32 = poolAsset.assetId.startsWith('0x') && poolAsset.assetId.length === 66
+            ? poolAsset.assetId
+            : ethers.id(poolAsset.assetId);
+          
+          // Check assetToPool mapping directly on contract
+          const provider = (this.mantleService as any).provider;
+          if (provider) {
+            const PoolManagerABI = [
+              'function assetToPool(bytes32) external view returns (bytes32)',
+              'function getPool(bytes32) external view returns (bytes32,address,string,string,uint256,uint256,uint256,uint256,bool,bool,uint256,bytes32[],bytes32[])',
+            ];
+            
+            const poolManagerContract = new ethers.Contract(
+              poolManagerAddress,
+              PoolManagerABI,
+              provider
+            );
+            
+            const existingPoolId = await poolManagerContract.assetToPool(assetIdBytes32);
+            
+            // Check if asset is already in a pool (poolId is not zero)
+            if (existingPoolId && existingPoolId !== ethers.ZeroHash && existingPoolId !== '0x0000000000000000000000000000000000000000000000000000000000000000') {
+              // Try to get pool details to see if it's active
+              try {
+                const existingPool = await poolManagerContract.getPool(existingPoolId);
+                const isPoolActive = existingPool[9]; // isActive is at index 9
+                
+                if (isPoolActive) {
+                  this.logger.error(`❌ Asset ${poolAsset.assetId} is already in active pool ${existingPoolId} on-chain`);
+                  throw new BadRequestException(
+                    `Asset ${poolAsset.assetId} is already in an active pool on-chain (Pool ID: ${existingPoolId}). ` +
+                    `An asset can only be in one pool at a time. ` +
+                    `Please remove the asset from the existing pool or use a different asset.`
+                  );
+                } else {
+                  this.logger.warn(`⚠️ Asset ${poolAsset.assetId} is in inactive pool ${existingPoolId} on-chain`);
+                  // Allow this - inactive pools shouldn't block new pool creation
+                }
+              } catch (poolError: any) {
+                // Pool might not exist or be inaccessible, but assetToPool still has it
+                // Check if error is "Pool not found" - this means pool doesn't exist on current contract
+                const isPoolNotFound = poolError.message?.includes('Pool not found') || 
+                                     poolError.reason === 'Pool not found' ||
+                                     poolError.message?.includes('execution reverted');
+                
+                if (isPoolNotFound) {
+                  // Pool doesn't exist on current contract - check if it exists on old contract
+                  const oldPoolManagerAddress = '0x03060EE3a1fAF00f9F57abCD07De73a971d8699C'; // Old contract
+                  let poolExistsOnOldContract = false;
+                  
+                  try {
+                    // Try to check if pool exists on old contract
+                    const provider = (this.mantleService as any).provider;
+                    if (provider) {
+                      const PoolManagerABI = [
+                        'function getPool(bytes32) external view returns (bytes32,address,string,string,uint256,uint256,uint256,uint256,bool,bool,uint256,bytes32[],bytes32[])',
+                      ];
+                      const oldPoolManagerContract = new ethers.Contract(
+                        oldPoolManagerAddress,
+                        PoolManagerABI,
+                        provider
+                      );
+                      await oldPoolManagerContract.getPool(existingPoolId);
+                      poolExistsOnOldContract = true;
+                      this.logger.warn(`⚠️ Pool ${existingPoolId} exists on OLD contract (${oldPoolManagerAddress})`);
+                    }
+                  } catch (oldContractError) {
+                    // Pool doesn't exist on old contract either - it's truly orphaned
+                    this.logger.warn(`⚠️ Pool ${existingPoolId} doesn't exist on old contract either`);
+                  }
+                  
+                  if (poolExistsOnOldContract) {
+                    // Pool exists on old contract - asset is legitimately in that pool
+                    this.logger.error(`❌ Asset ${poolAsset.assetId} is in pool ${existingPoolId} on OLD contract`);
+                    this.logger.error(`   Old PoolManager: ${oldPoolManagerAddress}`);
+                    this.logger.error(`   Current PoolManager: ${poolManagerAddress}`);
+                    this.logger.error(`   The assetToPool mapping on NEW contract points to old contract's pool`);
+                    
+                    throw new BadRequestException(
+                      `Asset ${poolAsset.assetId} is mapped to pool ${existingPoolId} that exists on the OLD PoolManager contract. ` +
+                      `The asset is legitimately in that pool on the old contract. ` +
+                      `You cannot use this asset in pools on the new contract until it's removed from the old pool. ` +
+                      `Please use a different asset, or remove the asset from the pool on the old contract first. ` +
+                      `Old PoolManager: ${oldPoolManagerAddress}`
+                    );
+                  } else {
+                    // Pool doesn't exist anywhere - orphaned mapping
+                    this.logger.warn(`⚠️ Asset ${poolAsset.assetId} is mapped to pool ${existingPoolId} that doesn't exist on ANY contract`);
+                    this.logger.warn(`   This is an orphaned mapping - the pool was likely deleted but mapping wasn't cleared`);
+                    this.logger.warn(`   The contract will still reject adding this asset (no way to clear mapping)`);
+                    
+                    throw new BadRequestException(
+                      `Asset ${poolAsset.assetId} is mapped to pool ${existingPoolId} that doesn't exist on the current contract. ` +
+                      `The pool also doesn't exist on the old contract, indicating an orphaned mapping. ` +
+                      `The PoolManager contract has no function to remove assets from pools, so this mapping cannot be cleared. ` +
+                      `Please use a different asset. ` +
+                      `To check which pool the asset is in, run: cd trustbridge-backend/contracts && npm run check:asset-pool ${poolAsset.assetId}`
+                    );
+                  }
+                } else {
+                  // Other error accessing pool
+                  this.logger.warn(`⚠️ Could not verify pool ${existingPoolId} for asset ${poolAsset.assetId}: ${poolError.message}`);
+                  this.logger.warn(`   Asset is mapped to pool ${existingPoolId} but pool might be invalid or from old contract`);
+                  throw new BadRequestException(
+                    `Asset ${poolAsset.assetId} is mapped to pool ${existingPoolId} on-chain, but the pool cannot be accessed. ` +
+                    `Error: ${poolError.message}. ` +
+                    `This might be from a previous deployment. ` +
+                    `Please contact support to resolve this issue, or use a different asset.`
+                  );
+                }
+              }
+            }
+          }
+        }
+      } catch (onChainCheckError: any) {
+        // If on-chain check fails, fall back to database check
+        this.logger.warn(`Could not check on-chain assetToPool mapping: ${onChainCheckError.message}`);
+        if (onChainCheckError instanceof BadRequestException) {
+          throw onChainCheckError; // Re-throw BadRequestException
+        }
+      }
+      
+      // Fallback: Check database for existing pool
       const existingPool = await this.amcPoolModel.findOne({
         'assets.assetId': poolAsset.assetId,
         status: { $in: ['ACTIVE', 'DRAFT'] }
       });
 
       if (existingPool && existingPool.poolId !== poolAsset.poolId) {
-        throw new BadRequestException(`Asset ${poolAsset.assetId} is already in pool ${existingPool.poolId}`);
+        this.logger.warn(`⚠️ Asset ${poolAsset.assetId} found in database pool ${existingPool.poolId}, but on-chain check passed`);
+        // Don't throw - on-chain is source of truth, database might be stale
       }
 
       // Validate asset value is reasonable

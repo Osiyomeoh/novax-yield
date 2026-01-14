@@ -1977,16 +1977,55 @@ export class MantleContractService {
       }
 
       // Query PoolCreated events to get all pool IDs
-      // We'll query from block 0 to latest (or use a reasonable range)
+      // Use chunking to respect the 10,000 block limit per query
       const currentBlock = await provider.getBlockNumber();
-      const fromBlock = Math.max(0, currentBlock - 100000); // Last 100k blocks (adjust as needed)
+      const maxBlockRange = 10000; // RPC limit is 10,000 blocks
+      const lookbackBlocks = 100000; // Look back 100k blocks max
+      const fromBlock = Math.max(0, currentBlock - lookbackBlocks);
       
-      console.log(`📡 Querying PoolCreated events from block ${fromBlock} to ${currentBlock}...`);
+      console.log(`📡 Querying PoolCreated events from block ${fromBlock} to ${currentBlock} (${currentBlock - fromBlock} blocks)...`);
+      
+      // Calculate number of chunks needed
+      const totalBlocks = currentBlock - fromBlock;
+      const chunks = Math.ceil(totalBlocks / maxBlockRange);
+      
+      console.log(`📦 Splitting query into ${chunks} chunks of max ${maxBlockRange} blocks each`);
       
       const filter = poolManager.filters.PoolCreated();
-      const events = await poolManager.queryFilter(filter, fromBlock, currentBlock);
+      const allEvents: any[] = [];
       
-      console.log(`✅ Found ${events.length} PoolCreated events`);
+      // Query in chunks
+      for (let i = 0; i < chunks; i++) {
+        const chunkFromBlock = fromBlock + (i * maxBlockRange);
+        const chunkToBlock = Math.min(fromBlock + ((i + 1) * maxBlockRange) - 1, currentBlock);
+        
+        if (chunkFromBlock > currentBlock) break;
+        
+        try {
+          console.log(`📡 Querying chunk ${i + 1}/${chunks}: blocks ${chunkFromBlock} to ${chunkToBlock} (${chunkToBlock - chunkFromBlock + 1} blocks)...`);
+          const chunkEvents = await poolManager.queryFilter(filter, chunkFromBlock, chunkToBlock);
+          allEvents.push(...chunkEvents);
+          console.log(`✅ Chunk ${i + 1}: Found ${chunkEvents.length} events`);
+        } catch (chunkError: any) {
+          console.warn(`⚠️ Error querying chunk ${i + 1} (blocks ${chunkFromBlock}-${chunkToBlock}):`, chunkError.message);
+          // If chunk fails, try smaller chunks
+          if (chunkToBlock - chunkFromBlock > 1000) {
+            const halfChunk = Math.floor((chunkToBlock - chunkFromBlock) / 2);
+            const midBlock = chunkFromBlock + halfChunk;
+            try {
+              console.log(`📡 Retrying smaller chunks: ${chunkFromBlock}-${midBlock} and ${midBlock + 1}-${chunkToBlock}`);
+              const firstHalf = await poolManager.queryFilter(filter, chunkFromBlock, midBlock);
+              const secondHalf = await poolManager.queryFilter(filter, midBlock + 1, chunkToBlock);
+              allEvents.push(...firstHalf, ...secondHalf);
+            } catch (retryError) {
+              console.error(`❌ Failed to query chunk even with smaller size, skipping blocks ${chunkFromBlock}-${chunkToBlock}`);
+            }
+          }
+        }
+      }
+      
+      const events = allEvents;
+      console.log(`✅ Found ${events.length} PoolCreated events total`);
 
       // Get pool details for each pool
       const pools = await Promise.all(

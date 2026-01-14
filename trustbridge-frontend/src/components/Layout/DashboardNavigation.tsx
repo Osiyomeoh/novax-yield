@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { TrendingUp, BarChart3, Settings, X, Zap, User, LogOut, ChevronLeft, ChevronRight, ChevronDown, Shield, Coins, Vote, BarChart3 as BarChart, Activity, Building2, Crown, TreePine, Package, PieChart, Bot, Phone, ArrowLeftRight, DollarSign } from 'lucide-react';
+import { TrendingUp, BarChart3, Settings, X, Zap, User, LogOut, ChevronLeft, ChevronRight, ChevronDown, Shield, Coins, Vote, BarChart3 as BarChart, Building2, Crown, TreePine, Package, PieChart, Bot, Phone, ArrowLeftRight, DollarSign } from 'lucide-react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useSidebar } from '../../contexts/SidebarContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -90,13 +90,7 @@ const DashboardNavigation: React.FC = () => {
   const navItems = [
     { id: 'discovery', label: 'Marketplace', icon: TrendingUp, href: '/dashboard/marketplace' },
     { id: 'profile', label: 'Profile', icon: User, href: '/dashboard/profile' },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3, href: '/dashboard/analytics' },
     { id: 'settings', label: 'Settings', icon: Settings, href: '/dashboard/settings' },
-  ];
-
-  const tradingItems = [
-    { id: 'trading', label: 'Trading', icon: Activity, href: '/dashboard/trading' },
-    { id: 'secondary-markets', label: 'Secondary Markets', icon: TrendingUp, href: '/dashboard/secondary-markets' },
   ];
 
   const investmentItems = [
@@ -140,7 +134,6 @@ const DashboardNavigation: React.FC = () => {
       highlight: true // Mark admin section as highlighted
     }] : []),
     { id: 'rwa', label: 'Real-World Assets', icon: TreePine, items: rwaItems },
-    { id: 'trading', label: 'Trading', icon: Activity, items: tradingItems },
     { id: 'investment', label: 'Investment', icon: BarChart, items: investmentItems },
     { id: 'verification', label: 'Verification', icon: Shield, items: verificationItems },
   ];

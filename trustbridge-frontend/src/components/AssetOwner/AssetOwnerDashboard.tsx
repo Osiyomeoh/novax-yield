@@ -69,7 +69,10 @@ const AssetOwnerDashboard: React.FC = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4001/api';
+      const apiUrl = import.meta.env.VITE_API_URL;
+      if (!apiUrl) {
+        throw new Error('VITE_API_URL is not configured. Please set the environment variable.');
+      }
       
       const response = await fetch(`${apiUrl}/asset-owners/${address}`, {
         headers: {
@@ -116,7 +119,10 @@ const AssetOwnerDashboard: React.FC = () => {
 
     try {
       const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4001/api';
+      const apiUrl = import.meta.env.VITE_API_URL;
+      if (!apiUrl) {
+        throw new Error('VITE_API_URL is not configured. Please set the environment variable.');
+      }
       
       const response = await fetch(`${apiUrl}/asset-owners/revenue/submit`, {
         method: 'POST',

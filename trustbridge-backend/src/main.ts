@@ -26,13 +26,16 @@ async function bootstrap() {
   // CORS configuration
   app.enableCors({
     origin: [
+      'https://www.tbafrica.xyz',
+      'https://tbafrica.xyz',
       process.env.FRONTEND_URL || 'http://localhost:3000',
       process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://trust-bridge-africa.vercel.app',
-      process.env.TBAFRICA_URL || 'https://www.tbafrica.xyz',
       'http://localhost:3000',
       'http://localhost:3001'
     ],
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   });
 
   // Swagger documentation

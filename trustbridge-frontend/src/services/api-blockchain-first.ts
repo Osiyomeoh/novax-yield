@@ -2,6 +2,11 @@ import axios from 'axios'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL
 
+if (!API_BASE_URL) {
+  console.error('⚠️ VITE_API_URL is not configured. API calls will fail.');
+  console.error('Please set VITE_API_URL environment variable to your backend URL.');
+}
+
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,

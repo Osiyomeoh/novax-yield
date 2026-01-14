@@ -5,7 +5,9 @@ import { ethers } from 'ethers';
 // This file is kept for reference but not used in production
 
 // Deployed contract addresses from hedera-universal-system.json
-const POOL_MANAGER_ADDRESS = "0x3473ABb1c690782829256b14CB13e02110490fD5";
+// PoolManager address - should be loaded from environment variables
+// Updated to latest deployment: 0x06bb375127a9D3cBA7aAE9C108078bf31A67ab80
+const POOL_MANAGER_ADDRESS = import.meta.env.VITE_POOL_MANAGER_ADDRESS || "0x06bb375127a9D3cBA7aAE9C108078bf31A67ab80";
 const POOL_TOKEN_ADDRESS = "0x17c1041bDe225E45399F048191152BaD19006548";
 
 export interface Pool {

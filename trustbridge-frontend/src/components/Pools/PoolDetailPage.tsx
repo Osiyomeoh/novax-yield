@@ -312,7 +312,10 @@ const PoolDetailPage: React.FC<PoolDetailPageProps> = ({ poolId, onBack }) => {
     try {
       setLoading(true);
       const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4001/api';
+      const apiUrl = import.meta.env.VITE_API_URL;
+      if (!apiUrl) {
+        throw new Error('VITE_API_URL is not configured. Please set the environment variable.');
+      }
       
       if (!apiUrl) {
         throw new Error('API URL not configured. Please set VITE_API_URL environment variable.');

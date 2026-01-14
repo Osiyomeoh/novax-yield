@@ -2784,7 +2784,11 @@ class ContractService {
     try {
       console.log('🔄 Getting user assets from Hedera services...');
       
-            const response = await fetch(`http://localhost:4001/api/hedera/user-assets/${userAddress}`, {
+            const apiUrl = import.meta.env.VITE_API_URL || '';
+            if (!apiUrl) {
+              throw new Error('VITE_API_URL is not configured');
+            }
+            const response = await fetch(`${apiUrl}/hedera/user-assets/${userAddress}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -2820,7 +2824,11 @@ class ContractService {
     try {
       console.log('🔄 Getting marketplace data from Hedera services...');
       
-            const response = await fetch('http://localhost:4001/api/hedera/marketplace-data', {
+            const apiUrl = import.meta.env.VITE_API_URL || '';
+            if (!apiUrl) {
+              throw new Error('VITE_API_URL is not configured');
+            }
+            const response = await fetch(`${apiUrl}/hedera/marketplace-data`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
