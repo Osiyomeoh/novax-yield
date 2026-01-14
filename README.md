@@ -109,22 +109,24 @@ Africa holds **$1 trillion+ in "dead capital"** - assets that cannot be used as 
 
 ### **The Solution: TrustBridge**
 
-TrustBridge **tokenizes** African assets on Hedera blockchain, making them **investable, tradeable, and accessible** to anyone with a basic mobile phone:
+TrustBridge **tokenizes** African real-world assets on Mantle Network, making them **investable, tradeable, and accessible** to global investors:
 
-#### **✅ For Asset Owners (Farmers, Landowners)**
-- **Tokenize** farmland, real estate, equipment on Mantle Network
+#### **✅ For Asset Owners (Farmers, Landowners, Property Owners)**
+- **Tokenize** real-world assets (farmland, real estate, equipment, infrastructure) on Mantle Network
 - **Access capital** by selling fractional ownership
 - **Earn ongoing yields** from asset-backed pool investments
 - **Set investable percentage** - Control how much of your asset can be tokenized
 - **Transparent ownership** - All transactions recorded on-chain
+- **Revenue reporting** - Submit periodic revenue reports for dividend distribution
 
 #### **✅ For Investors (Local & Global)**
-- **Diversify** portfolio with African agriculture, real estate, commodities
-- **Fractional ownership** of high-value assets (invest as little as $1)
-- **Real yields** from asset performance, not speculation
+- **Diversify** portfolio with African agriculture, real estate, commodities, infrastructure
+- **Fractional ownership** of high-value real-world assets (invest as little as $1)
+- **Real yields** from actual asset performance, not speculation
 - **Global liquidity** on Mantle Network
 - **Transparent ownership** via immutable blockchain audit trail
 - **Real-time ROI** - Track your investment returns second-by-second
+- **AMC-managed pools** - Professional asset management and oversight
 
 #### **✅ Trust Economy Benefits**
 - **TRUST token** powers platform transactions
@@ -199,7 +201,6 @@ TrustBridge **tokenizes** African assets on Hedera blockchain, making them **inv
 │  │                                                               │          │
 │  │  ✅ Asset Metadata:    RWA details & documentation           │          │
 │  │  ✅ Evidence Files:    Legal documents, photos               │          │
-│  │  ✅ Content Storage:   Digital NFT files                     │          │
 │  │  ✅ Immutable Links:   Content-addressed storage             │          │
 │  └──────────────────────────────────────────────────────────────┘          │
 │                                                                              │
@@ -219,19 +220,36 @@ TrustBridge **tokenizes** African assets on Hedera blockchain, making them **inv
 
 ### 🏢 **Real-World Asset (RWA) Tokenization**
 
+TrustBridge focuses exclusively on **Real-World Assets** - physical assets that generate real revenue and yield.
+
+#### **Supported Asset Types**
+- **Agriculture**: Farmland, agribusiness, agricultural equipment
+- **Real Estate**: Commercial properties, residential buildings, land
+- **Infrastructure**: Roads, bridges, renewable energy projects
+- **Commodities**: Natural resources, mining assets
+- **Equipment**: Machinery, vehicles, industrial equipment
+
 #### **Asset Creation Flow**
 ```
-1. User creates RWA asset (web or USSD)
+1. Asset owner connects MetaMask wallet
    ↓
-2. Upload documents to IPFS (Pinata)
+2. Navigate to "Create RWA Asset"
    ↓
-3. Create HTS NFT on Hedera
+3. Enter asset details (type, location, value, size)
    ↓
-4. Submit metadata to HCS topic
+4. Set investable percentage (how much can be tokenized)
    ↓
-5. AMC admin approves/rejects
+5. Upload legal documents to IPFS (deeds, photos, certificates)
    ↓
-6. Asset listed in marketplace
+6. Submit asset for AMC approval
+   ↓
+7. Smart contract creates asset on Mantle Network
+   ↓
+8. AMC reviews and approves/rejects
+   ↓
+9. Approved assets added to investment pools
+   ↓
+10. Investors can now invest in tokenized assets
 ```
 
 **Technical Implementation:**
@@ -240,6 +258,7 @@ TrustBridge **tokenizes** African assets on Hedera blockchain, making them **inv
 - **Blockchain**: All asset data stored on Mantle Network
 - **MongoDB**: Stores asset metadata with on-chain asset ID
 - **Real-time Updates**: Direct blockchain queries for verification
+- **AMC Oversight**: Licensed Asset Management Companies verify and manage assets
 
 #### **AMC Pool Management**
 
@@ -301,7 +320,7 @@ The **TRUST token** is the native utility token powering the entire TrustBridge 
   - 10% Ecosystem Fund (AMCs, partnerships)
   - 5% Liquidity & Reserves
 - **Deflationary**: 2% burn on every transaction
-- **Exchange**: Built-in HBAR ↔ TRUST swap on Hedera
+- **Exchange**: TRUST token trading on Mantle Network
 
 #### **Use Cases**
 1. **Platform Fees**: Pay for asset creation, trading, AMC fees
@@ -356,72 +375,10 @@ Every transaction burns 2% of TRUST tokens:
 - **Pools**: Investment pool statistics
 
 **Implementation:**
-- Backend aggregates from Hedera + MongoDB
+- Backend aggregates from Mantle Network + MongoDB
 - HCS topic queries for asset count
 - Real-time updates via polling
 - Charts and visualizations in frontend
-
-### 🎨 **Digital Asset (NFT) Creation & Trading**
-
-#### **Digital Asset Creation Flow**
-```
-1. Creator uploads digital content (art, music, video, documents)
-   ↓
-2. Prepare rich metadata (description, attributes, royalties)
-   ↓
-3. Upload content to IPFS (Pinata)
-   ↓
-4. Create HTS NFT collection or single NFT
-   ↓
-5. Mint NFT with IPFS CID linked to metadata
-   ↓
-6. Configure royalty settings (creator percentage)
-   ↓
-7. List on marketplace for trading
-```
-
-**Technical Implementation:**
-- **IPFS Upload**: `PinataService` uploads files → returns CID
-- **HTS NFT**: `TokenCreateTransaction` with `tokenType: NON_FUNGIBLE_UNIQUE`
-- **Metadata**: JSON stored on IPFS with `displayImage`, `attributes`, `creator`
-- **Minting**: `TokenMintTransaction` for each NFT
-- **Royalties**: Configured via Hedera royalty mechanisms
-- **Collections**: Multiple NFTs under single token ID
-
-#### **Enhanced Minting Features**
-- **Bulk Minting**: Create multiple NFTs in single transaction
-- **Metadata Templates**: Reusable metadata structures
-- **Collection Management**: Organize NFTs into collections
-- **Creator Profiles**: Verified creator accounts
-- **Royalty Automation**: Automatic royalty distribution on sales
-
-#### **Digital Asset Trading**
-- **Direct Sales**: Fixed-price NFT purchases
-- **Auctions**: Time-based bidding on NFTs
-- **Collection Trading**: Bundle multiple NFTs
-- **Royalty Payments**: Automatic creator royalties
-- **Secondary Markets**: Resale on marketplace
-
-**Implementation:**
-- **HTS Transfers**: `TransferTransaction` for NFT ownership
-- **Royalty Tracking**: Platform calculates & distributes royalties
-- **HCS Events**: All sales recorded on HCS topic
-- **Marketplace UI**: Browse, filter, search digital assets
-
-#### **RWA vs Digital Assets Comparison**
-
-| Feature | RWA (Physical) | Digital Assets (NFTs) |
-|---------|---------------|----------------------|
-| **Access** | USSD + Web | Web only |
-| **Asset Type** | Farms, Real Estate, Commodities | Art, Music, Videos, Documents |
-| **Verification** | AMC approval, legal docs | Copyright verification |
-| **Storage** | IPFS metadata + physical | IPFS content + metadata |
-| **Token Model** | Single NFT per asset | NFT or collections |
-| **Trading** | AMC pools (fungible) | Direct NFT trades |
-| **Yields** | Real asset ROI | Capital appreciation |
-| **Compliance** | Heavy (KYC/AML) | Light (copyright) |
-| **Liquidity** | Pool-based | Individual |
-| **Investment** | Fractional via pools | Full NFT ownership |
 
 ---
 
@@ -439,7 +396,7 @@ Every transaction burns 2% of TRUST tokens:
    ↓
 3. Set 4-digit PIN: 1234
    ↓
-4. Backend creates Hedera account (0.0.1234567)
+4. Connect MetaMask wallet (Mantle Sepolia Testnet)
    ↓
 5. Select "Tokenize Asset" → Farmland
    ↓
@@ -447,7 +404,7 @@ Every transaction burns 2% of TRUST tokens:
    ↓
 7. Pay ₦500 via Paga agent
    ↓
-8. Backend creates HTS NFT (0.0.7654321) representing farm
+8. Backend creates asset on Mantle Network representing the farm
    ↓
 9. Asset submitted to HCS topic for AMC approval
    ↓
@@ -462,9 +419,9 @@ Every transaction burns 2% of TRUST tokens:
 14. Ibrahim checks portfolio via USSD: "My Assets: 1, Value: ₦10M, Earnings: ₦100K"
 ```
 
-**Hedera Transactions**:
+**Mantle Network Transactions**:
 - Account creation: `AccountCreateTransaction`
-- NFT minting: `TokenCreateTransaction` (supply=1)
+- Asset creation: `CoreAssetFactory.createRWAAsset()`
 - Pool token: `TokenCreateTransaction` (supply=100000)
 - Investments: `TransferTransaction` (pool tokens)
 - Yields: `TransferTransaction` (HBAR to Ibrahim)
@@ -490,7 +447,7 @@ NestJS + MongoDB + JWT + Swagger
 ├── Asset Management Service
 ├── AMC Pool Management Service
 ├── USSD Handler Service
-├── Hedera Integration Layer
+├── Mantle Network Integration Layer
 ├── IPFS Service (Pinata)
 ├── Google AI Service
 ├── Analytics Service
@@ -502,7 +459,6 @@ NestJS + MongoDB + JWT + Swagger
 Ethers.js + Hardhat
 ├── Smart Contracts: CoreAssetFactory, PoolManager, AMCManager
 ├── ERC-20 Tokens: TrustToken, PoolToken
-├── ERC-721 NFTs: AssetNFT
 ├── Web3 Integration: MetaMask, WalletConnect
 └── Contract Deployment: Hardhat deployment scripts
 ```
@@ -547,8 +503,7 @@ Ethers.js + Hardhat
 | **Real Estate** | $350B+ | 0.1% = $350M |
 | **Commodities** | $100B+ | 0.1% = $100M |
 | **Infrastructure** | $50B+ | 0.1% = $50M |
-| **Digital Assets** | $10B+ | 1% = $100M |
-| **TOTAL TAM** | **$650B+** | **$750M+** |
+| **TOTAL TAM** | **$650B+** | **$650M+** |
 
 ### **🎯 Competitive Advantages**
 
@@ -593,7 +548,7 @@ Ethers.js + Hardhat
    ↓
 7. Backend creates asset on Mantle via CoreAssetFactory
    ↓
-8. Asset NFT created representing the farm
+8. Asset created on-chain representing the farm
    ↓
 9. AMC reviews and approves asset
    ↓
@@ -654,56 +609,6 @@ Ethers.js + Hardhat
 - Dividends: `AMCManager.distributeDividends()` (TRUST to investors)
 - All transactions recorded on-chain for transparency
 
-### **🎨 Digital Creator: "Kemi the Artist"**
-
-**Scenario**: Kemi creates digital art and wants to sell NFTs
-
-**Flow**:
-```
-1. Visit tbafrica.xyz → Connect MetaMask wallet
-   ↓
-2. Navigate to "Create Digital Asset"
-   ↓
-3. Upload artwork: "Lagos Sunset.jpg" (5MB)
-   ↓
-4. IPFS upload via Pinata → CID: bafkreicv36xp5j5bmnx...
-   ↓
-5. Add metadata: Name=Lagos Sunset, Royalty=10%, Attributes
-   ↓
-6. Create NFT collection (optional) or single NFT
-   ↓
-7. Mint NFT with IPFS CID + metadata
-   ↓
-8. Set sale price: 100 TRUST tokens or auction mode
-   ↓
-9. List on TrustBridge marketplace
-   ↓
-10. Customer "David" browses → Finds "Lagos Sunset"
-    ↓
-11. Purchases for 100 TRUST tokens
-    ↓
-12. NFT ownership transferred → David
-    ↓
-13. Royalty: 10 TRUST → Kemi automatically
-    ↓
-14. Platform fee: 2 TRUST → TrustBridge
-    ↓
-15. Kemi receives: 88 TRUST in wallet
-    ↓
-16. Secondary sale: David sells for 150 TRUST
-    ↓
-17. Kemi auto-receives: 15 TRUST royalty
-    ↓
-18. Creator dashboard: "Lagos Sunset: Sales=$16, Royalties=$2.50"
-```
-
-**Mantle Network Transactions**:
-- NFT creation: `AssetNFT.mint()` (associates IPFS CID)
-- Primary sale: NFT transfer + TRUST payment
-- Royalty: Automatic TRUST distribution (10% to creator)
-- Secondary sale: NFT transfer + royalty payment
-- All transactions recorded on-chain
-
 ### **🏦 AMC Admin: "Mr. Johnson"**
 
 **Scenario**: Licensed AMC manager managing asset pools
@@ -744,10 +649,10 @@ Ethers.js + Hardhat
 ## 🔐 **Security & Compliance**
 
 ### **Blockchain Security**
-- **HCS Audit Trail**: All transactions immutable on Hedera
-- **Multi-sig**: Critical operations require multiple approvals
+- **On-Chain Audit Trail**: All transactions immutable on Mantle Network
 - **Smart Contracts**: Automated, audited business logic
-- **Mirror Node**: Real-time transaction verification
+- **Multi-signature**: Critical operations require multiple approvals
+- **Block Explorer**: Real-time transaction verification
 
 ### **Platform Security**
 - **PIN Security**: Bcrypt hashing, lockout mechanisms
@@ -911,10 +816,10 @@ Ethers.js + Hardhat
 ## 🎯 **Why TrustBridge Wins**
 
 ### **1. First-Mover in African RWA Tokenization**
-No platform offers USSD access to real-world asset tokenization on Hedera
+No platform offers real-world asset tokenization on Mantle Network with real yields
 
 ### **2. Blockchain-Native Architecture**
-Built entirely on Hedera (not Ethereum forks) for speed & low cost
+Built entirely on Mantle Network (EVM Layer 2) for speed & low cost
 
 ### **3. Actual Market Need**
 60% of Africans are unbanked but own mobile phones → $650B untapped market
@@ -926,7 +831,7 @@ KYC/AML + AMC certification = institutional-ready
 Actual ROI from assets, not synthetic DeFi products
 
 ### **6. Scalable Technology**
-Handles millions of users on Hedera's enterprise infrastructure
+Handles millions of users on Mantle Network's scalable Layer 2 infrastructure
 
 ---
 
