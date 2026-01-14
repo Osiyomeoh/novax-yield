@@ -4,8 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "node --max-old-space-size=4096 ./node_modules/@nestjs/cli/bin/nest.js build",
-    "build:prod": "node --max-old-space-size=4096 ./node_modules/@nestjs/cli/bin/nest.js build --webpack",
+    "build": "node --max-old-space-size=4096 ./node_modules/@nestjs/cli/bin/nest.js build && npm run copy:artifacts",
+    "build:prod": "node --max-old-space-size=4096 ./node_modules/@nestjs/cli/bin/nest.js build --webpack && npm run copy:artifacts",
+    "copy:artifacts": "mkdir -p dist/contracts/artifacts && cp -r contracts/artifacts/* dist/contracts/artifacts/ 2>/dev/null || true",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",

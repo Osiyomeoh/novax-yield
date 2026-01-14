@@ -5,22 +5,81 @@ import * as path from 'path';
 import * as fs from 'fs';
 
 // Load full ABI from compiled contract artifacts
+// Try multiple paths: dist (production), root (development)
 let CoreAssetFactoryABI: any[] = [];
-try {
-  const artifactPath = path.join(__dirname, '../../contracts/artifacts/contracts/CoreAssetFactory.sol/CoreAssetFactory.json');
-  if (fs.existsSync(artifactPath)) {
-    const artifact = JSON.parse(fs.readFileSync(artifactPath, 'utf8'));
-    CoreAssetFactoryABI = artifact.abi;
-  } else {
-    // Fallback to minimal ABI if artifact not found
-    throw new Error('Artifact not found');
+const artifactPaths = [
+  path.join(__dirname, '../../contracts/artifacts/contracts/CoreAssetFactory.sol/CoreAssetFactory.json'), // In dist
+  path.join(process.cwd(), 'contracts/artifacts/contracts/CoreAssetFactory.sol/CoreAssetFactory.json'), // From root
+  path.join(__dirname, '../../../contracts/artifacts/contracts/CoreAssetFactory.sol/CoreAssetFactory.json'), // Alternative path
+];
+
+let artifactLoaded = false;
+for (const artifactPath of artifactPaths) {
+  try {
+    if (fs.existsSync(artifactPath)) {
+      const artifact = JSON.parse(fs.readFileSync(artifactPath, 'utf8'));
+      CoreAssetFactoryABI = artifact.abi;
+      artifactLoaded = true;
+      console.log(`✅ Loaded CoreAssetFactory ABI from: ${artifactPath}`);
+      break;
+    }
+  } catch (error) {
+    // Continue to next path
+    continue;
   }
-} catch (error) {
-  // Fallback to minimal ABI if loading fails (should not happen in production)
+}
+
+if (!artifactLoaded) {
+  console.warn('⚠️ Could not load artifact file, using fallback ABI with struct return type');
+  // Fallback ABI with correct struct return type for getAsset
   CoreAssetFactoryABI = [
     'function createRWAAsset(uint8,string,string,string,uint256,uint256,uint256,string[],string[],string,string,string) external returns (bytes32)',
     'function createDigitalAsset(uint8,string,string,string,uint256,string,string,uint256) external returns (bytes32)',
-    'function getAsset(bytes32) external view returns (bytes32,address,address,uint8,uint8,string,string,string,uint256,uint256,uint256,uint8,string[],string[],string,string,string,address,uint256,uint8,address,uint256,uint256,uint256,uint256,uint256,bool,bool,uint256,uint256,address,uint256)',
+    {
+      "inputs": [{ "internalType": "bytes32", "name": "_assetId", "type": "bytes32" }],
+      "name": "getAsset",
+      "outputs": [{
+        "components": [
+          { "internalType": "bytes32", "name": "id", "type": "bytes32" },
+          { "internalType": "address", "name": "originalOwner", "type": "address" },
+          { "internalType": "address", "name": "currentOwner", "type": "address" },
+          { "internalType": "uint8", "name": "category", "type": "uint8" },
+          { "internalType": "uint8", "name": "assetType", "type": "uint8" },
+          { "internalType": "string", "name": "assetTypeString", "type": "string" },
+          { "internalType": "string", "name": "name", "type": "string" },
+          { "internalType": "string", "name": "location", "type": "string" },
+          { "internalType": "uint256", "name": "totalValue", "type": "uint256" },
+          { "internalType": "uint256", "name": "maturityDate", "type": "uint256" },
+          { "internalType": "uint256", "name": "maxInvestablePercentage", "type": "uint256" },
+          { "internalType": "uint8", "name": "verificationLevel", "type": "uint8" },
+          { "internalType": "string[]", "name": "evidenceHashes", "type": "string[]" },
+          { "internalType": "string[]", "name": "documentTypes", "type": "string[]" },
+          { "internalType": "string", "name": "imageURI", "type": "string" },
+          { "internalType": "string", "name": "documentURI", "type": "string" },
+          { "internalType": "string", "name": "description", "type": "string" },
+          { "internalType": "address", "name": "nftContract", "type": "address" },
+          { "internalType": "uint256", "name": "tokenId", "type": "uint256" },
+          { "internalType": "uint8", "name": "status", "type": "uint8" },
+          { "internalType": "address", "name": "currentAMC", "type": "address" },
+          { "internalType": "uint256", "name": "createdAt", "type": "uint256" },
+          { "internalType": "uint256", "name": "verifiedAt", "type": "uint256" },
+          { "internalType": "uint256", "name": "amcTransferredAt", "type": "uint256" },
+          { "internalType": "uint256", "name": "tradingVolume", "type": "uint256" },
+          { "internalType": "uint256", "name": "lastSalePrice", "type": "uint256" },
+          { "internalType": "bool", "name": "isTradeable", "type": "bool" },
+          { "internalType": "bool", "name": "isListed", "type": "bool" },
+          { "internalType": "uint256", "name": "listingPrice", "type": "uint256" },
+          { "internalType": "uint256", "name": "listingExpiry", "type": "uint256" },
+          { "internalType": "address", "name": "currentBuyer", "type": "address" },
+          { "internalType": "uint256", "name": "currentOffer", "type": "uint256" }
+        ],
+        "internalType": "struct CoreAssetFactory.UniversalAsset",
+        "name": "",
+        "type": "tuple"
+      }],
+      "stateMutability": "view",
+      "type": "function"
+    },
     'function verifyAsset(bytes32,uint8) external',
     'event AssetCreated(bytes32 indexed,address indexed,uint8,string,string,uint256,uint8)',
   ];
@@ -718,14 +777,20 @@ export class MantleService {
    * Uses Contract instance for automatic struct decoding (like frontend)
    */
   async getAsset(assetId: string): Promise<any> {
-    // Multiple RPC endpoints for fallback
+    // Multiple RPC endpoints for fallback - prioritize reliable public endpoints
+    // Try most reliable endpoints first (publicnode and official mantle endpoints)
     const rpcEndpoints = [
-      this.config.rpcUrl,
-      'https://rpc.sepolia.mantle.xyz',
-      'https://mantle-rpc.publicnode.com',
-      'https://mantle.drpc.org',
-      'https://rpc.mantle.xyz',
+      this.config.rpcUrl, // Primary from config
+      'https://rpc.sepolia.mantle.xyz', // Official Mantle Sepolia endpoint (most reliable)
+      'https://mantle-rpc.publicnode.com', // PublicNode (reliable)
+      'https://mantle.drpc.org', // dRPC (reliable)
+      'https://rpc.mantle.xyz', // Official Mantle mainnet (fallback)
+      'https://mantle-public.nodies.app', // Nodies (fallback)
+      'https://mantle.api.onfinality.io/public', // OnFinality (fallback)
     ].filter(Boolean);
+    
+    this.logger.log(`🔍 Starting getAsset() for ${assetId} - will try ${rpcEndpoints.length} RPC endpoints`);
+    this.logger.log(`🔗 Primary RPC from config: ${this.config.rpcUrl}`);
     
     let lastError: any = null;
     
@@ -770,9 +835,33 @@ export class MantleService {
           setTimeout(() => reject(new Error('getAsset() timeout after 10 seconds')), 10000)
         );
         
-        const getAssetPromise = factoryContract.getAsset(assetIdBytes32);
-        const assetResult = await Promise.race([getAssetPromise, timeoutPromise]);
-        this.logger.log(`✅ getAsset() succeeded for ${assetIdBytes32} using ${rpcUrl}`);
+        let assetResult: any;
+        try {
+          // Try getAsset() first
+          const getAssetPromise = factoryContract.getAsset(assetIdBytes32);
+          assetResult = await Promise.race([getAssetPromise, timeoutPromise]);
+          this.logger.log(`✅ getAsset() succeeded for ${assetIdBytes32} using ${rpcUrl}`);
+        } catch (decodeError: any) {
+          // If decode error, try using assets() mapping as fallback (returns struct directly)
+          if (decodeError.message?.includes('could not decode') || decodeError.code === 'BAD_DATA') {
+            this.logger.log(`⚠️ getAsset() decode error, trying assets() mapping as fallback...`);
+            try {
+              if (typeof factoryContract.assets === 'function') {
+                const assetsPromise = factoryContract.assets(assetIdBytes32);
+                assetResult = await Promise.race([assetsPromise, timeoutPromise]);
+                this.logger.log(`✅ assets() mapping succeeded for ${assetIdBytes32} using ${rpcUrl}`);
+              } else {
+                throw decodeError; // Re-throw original error if assets() doesn't exist
+              }
+            } catch (assetsError: any) {
+              // Re-throw the decode error to try next RPC
+              throw decodeError;
+            }
+          } else {
+            // Not a decode error, re-throw
+            throw decodeError;
+          }
+        }
         
         // Success - process result and return
         return await this.processAssetResult(assetResult, assetId, assetIdBytes32);
@@ -780,23 +869,26 @@ export class MantleService {
         lastError = rpcError;
         this.logger.warn(`⚠️ RPC ${rpcUrl} failed: ${rpcError.message}`);
         
-        // If decode error, asset doesn't exist - don't retry other RPCs
-        if (rpcError.message?.includes('could not decode') || 
-            rpcError.message?.includes('BAD_DATA') ||
-            rpcError.code === 'BAD_DATA') {
-          throw new Error(
-            `Asset ${assetId} not found or could not be decoded. ` +
-            `Possible causes: (1) Asset doesn't exist on-chain, (2) Contract ABI mismatch, (3) RPC provider issue. ` +
-            `Original error: ${rpcError.message}`
-          );
-        }
+        // Track if this is a decode error (could be RPC issue, try other RPCs first)
+        const isDecodeError = rpcError.message?.includes('could not decode') || 
+                              rpcError.message?.includes('BAD_DATA') ||
+                              rpcError.code === 'BAD_DATA';
         
-        // If this is the last RPC, throw the error
+        // If this is the last RPC and we've tried all, throw the error
         if (rpcUrl === rpcEndpoints[rpcEndpoints.length - 1]) {
+          // If all RPCs failed with decode errors, asset likely doesn't exist
+          if (isDecodeError) {
+            throw new Error(
+              `Asset ${assetId} not found or could not be decoded on all RPC endpoints. ` +
+              `Possible causes: (1) Asset doesn't exist on-chain, (2) Contract ABI mismatch, (3) All RPC providers returned invalid data. ` +
+              `Original error: ${rpcError.message}`
+            );
+          }
           throw new Error(`Failed to fetch asset ${assetId} from all RPC endpoints. Last error: ${rpcError.message}`);
         }
         
-        // Otherwise, try next RPC
+        // Try next RPC even on decode errors (some RPCs might return corrupted data)
+        this.logger.log(`⚠️ Decode error on ${rpcUrl}, trying next RPC endpoint...`);
         continue;
       }
     }
