@@ -134,4 +134,9 @@ export const apiService = {
   
   // Token generation for verified users
   generateToken: (walletAddress: string) => apiClient.post('/auth/generate-token', { walletAddress }).then(res => res.data),
+  
+  // AMC Pools
+  getAMCPools: (params?: any) => apiClient.get('/amc-pools', { params }).then(res => res.data),
+  getAMCPool: (poolId: string) => apiClient.get(`/amc-pools/${poolId}`).then(res => res.data),
+  getActiveAMCPools: () => apiClient.get('/amc-pools/active').then(res => res.data),
 }

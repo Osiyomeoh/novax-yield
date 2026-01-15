@@ -826,56 +826,67 @@ export class AMCPoolsService {
 
   /**
    * Get pool by ID
-   * CRITICAL: Only returns pool if it exists on-chain
+   * CRITICAL: Fetches from blockchain first (source of truth)
    */
   async getPoolById(poolId: string): Promise<AMCPool> {
     try {
-      const pool = await this.amcPoolModel.findOne({ poolId });
-      if (!pool) {
-        throw new NotFoundException('Pool not found');
-      }
+      // Convert poolId to bytes32 if needed
+      const poolIdBytes32 = poolId.startsWith('0x') && poolId.length === 66
+        ? poolId
+        : ethers.id(poolId);
       
-      // Verify pool exists on-chain
-      if (!pool.hederaContractId || pool.hederaContractId === '') {
-        this.logger.warn(`Pool ${poolId} exists in database but NOT on-chain. This should not happen.`);
-        throw new NotFoundException('Pool not found on-chain. This pool may need to be recreated.');
-      }
-      
-      // Verify pool actually exists on-chain by calling contract
+      // Fetch pool directly from blockchain contract (source of truth)
+      let onChainPool: any;
       try {
-        const poolIdBytes32 = pool.hederaContractId.startsWith('0x') && pool.hederaContractId.length === 66
-          ? pool.hederaContractId
-          : ethers.id(pool.hederaContractId);
-        
-        const onChainPool = await this.mantleService.getPool(poolIdBytes32);
+        onChainPool = await this.mantleService.getPool(poolIdBytes32);
         
         // Check if pool exists (poolId should not be zero hash)
-        if (!onChainPool || !onChainPool.poolId || onChainPool.poolId === '0x0000000000000000000000000000000000000000000000000000000000000000') {
-          // Pool doesn't exist on-chain - remove from database
-          this.logger.warn(`⚠️ Pool ${poolId} (${pool.name}) doesn't exist on-chain. Removing from database.`);
-          await this.amcPoolModel.deleteOne({ poolId });
-          throw new NotFoundException('Pool not found on-chain. This pool has been removed from the database.');
+        const returnedPoolId = onChainPool.poolId || onChainPool[0];
+        if (!returnedPoolId || returnedPoolId === '0x0000000000000000000000000000000000000000000000000000000000000000' || returnedPoolId === ethers.ZeroHash) {
+          throw new NotFoundException('Pool not found on-chain');
         }
       } catch (error: any) {
-        // If getPool throws an error, pool likely doesn't exist on-chain
+        // If pool doesn't exist on-chain, check database as fallback
         if (error.message?.includes('Pool not found') || 
             error.message?.includes('zero hash') || 
-            error.message?.includes('revert') ||
             error.reason?.includes('Pool not found')) {
-          this.logger.warn(`⚠️ Pool ${poolId} (${pool.name}) doesn't exist on-chain: ${error.message}. Removing from database.`);
+          this.logger.warn(`⚠️ Pool ${poolId} not found on-chain, checking database...`);
+          
+          // Fallback to database
+          const pool = await this.amcPoolModel.findOne({ poolId });
+          if (!pool) {
+            throw new NotFoundException('Pool not found on-chain or in database');
+          }
+          
+          // If pool exists in database but not on-chain, remove it
+          this.logger.warn(`⚠️ Pool ${poolId} exists in database but NOT on-chain. Removing from database.`);
           await this.amcPoolModel.deleteOne({ poolId });
           throw new NotFoundException('Pool not found on-chain. This pool has been removed from the database.');
         }
-        // Re-throw if it's already a NotFoundException
-        if (error instanceof NotFoundException) {
-          throw error;
-        }
-        // For other errors (network issues), log but still return pool
-        this.logger.warn(`⚠️ Could not verify pool ${poolId} on-chain: ${error.message}. Returning pool but may need manual verification.`);
+        throw error;
+      }
+      
+      // Pool exists on-chain - try to find in database, or create a minimal record
+      let pool = await this.amcPoolModel.findOne({ poolId });
+      
+      if (!pool) {
+        // Pool exists on-chain but not in database - create a minimal record
+        this.logger.log(`Pool ${poolId} exists on-chain but not in database. Creating database record...`);
+        pool = new this.amcPoolModel({
+          poolId: poolId,
+          name: onChainPool.name || 'Unnamed Pool',
+          description: onChainPool.description || '',
+          hederaContractId: poolIdBytes32,
+          status: onChainPool.isActive ? PoolStatus.ACTIVE : PoolStatus.DRAFT,
+          createdAt: new Date(Number(onChainPool.createdAt) * 1000),
+          totalValue: Number(ethers.formatEther(onChainPool.totalValue || 0n)),
+          totalShares: Number(ethers.formatEther(onChainPool.totalShares || 0n)),
+        });
+        await pool.save();
       }
       
       // Update projected ROI if pool is active
-      if (pool.status === PoolStatus.ACTIVE) {
+      if (pool.status === PoolStatus.ACTIVE || onChainPool.isActive) {
         try {
           await this.roiCalculationService.updatePoolProjectedROI(poolId);
           // Re-fetch to get updated ROI data

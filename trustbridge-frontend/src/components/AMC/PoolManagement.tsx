@@ -229,53 +229,25 @@ export default function PoolManagement() {
 
   const loadPools = async () => {
     try {
-      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-      const apiUrl = import.meta.env.VITE_API_URL || '';
-      if (!apiUrl || !token) {
-        console.warn('API URL or token not available for loading pools');
-        return;
-      }
-
-      const response = await fetch(`${apiUrl}/amc-pools`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+      setIsLoading(true);
+      
+      // Fetch pools directly from blockchain contract only
+      console.log('🔍 Fetching pools from blockchain contract...');
+      const blockchainPools = await mantleContractService.getAllPoolsFromBlockchain();
+      console.log(`📊 Found ${blockchainPools.length} total pools from contract`);
+      
+      // Filter to only active pools
+      const activePools = blockchainPools.filter((pool: any) => {
+        return pool.isActive !== false && pool.status !== 'INACTIVE';
       });
-
-      if (response.ok) {
-        const poolsData = await response.json();
-        const allPools = Array.isArray(poolsData) ? poolsData : poolsData.data || [];
-        
-        console.log(`🔍 Loaded ${allPools.length} pools from backend`);
-        
-        // CRITICAL: Only show pools that exist on-chain
-        // For Mantle pools: hederaContractId stores the Mantle pool ID (legacy field name)
-        // Filter out pools that don't have on-chain ID (database-only pools)
-        const mantlePools = allPools.filter((pool: any) => {
-          // Exclude pools that have hederaTokenId (old Hedera field)
-          // CRITICAL: Require hederaContractId or mantlePoolId (on-chain pool ID)
-          // This ensures we never show database-only pools
-          const hasOnChainId = pool.hederaContractId || pool.mantlePoolId;
-          if (!hasOnChainId && !pool.hederaTokenId) {
-            console.warn(`⚠️ Skipping database-only pool: ${pool.poolId} (${pool.name}) - no on-chain ID found`);
-          }
-          return !pool.hederaTokenId && hasOnChainId;
-        });
-        
-        console.log(`✅ Filtered to ${mantlePools.length} on-chain Mantle pools (excluded ${allPools.length - mantlePools.length} database-only/Hedera pools)`);
-        if (mantlePools.length > 0) {
-          console.log('📊 On-chain pools found:', mantlePools.map((p: any) => ({ poolId: p.poolId, name: p.name, hederaContractId: p.hederaContractId || p.mantlePoolId })));
-        }
-        
-        setPools(mantlePools);
-      } else {
-        console.error('Failed to load pools:', response.statusText);
-        setPools([]);
-      }
+      
+      console.log(`✅ Found ${activePools.length} active pools from contract`);
+      setPools(activePools);
     } catch (error) {
-      console.error('Failed to load pools:', error);
+      console.error('❌ Failed to fetch pools from contract:', error);
+      setPools([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 

@@ -309,37 +309,121 @@ const PoolDetailPage: React.FC<PoolDetailPageProps> = ({ poolId, onBack }) => {
   }, [pool, isConnected, address]);
 
   const fetchPoolDetails = async () => {
+    let loadingTimeout: NodeJS.Timeout | null = null;
+    
     try {
       setLoading(true);
+      
+      // Add timeout safeguard
+      loadingTimeout = setTimeout(() => {
+        console.warn('⚠️ fetchPoolDetails taking too long, forcing completion');
+        setLoading(false);
+      }, 15000); // 15 second max
+      
       const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
       const apiUrl = import.meta.env.VITE_API_URL;
-      if (!apiUrl) {
-        throw new Error('VITE_API_URL is not configured. Please set the environment variable.');
+      
+      // Try API first with timeout
+      let poolData: any = null;
+      if (apiUrl && token) {
+        try {
+          console.log('🔍 Fetching pool from API...');
+          const apiPromise = fetch(`${apiUrl}/amc-pools/${poolId}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          const timeoutPromise = new Promise<Response>((_, reject) => 
+            setTimeout(() => reject(new Error('API timeout')), 5000)
+          );
+          
+          const response = await Promise.race([apiPromise, timeoutPromise]);
+          
+          if (response.ok) {
+            poolData = await response.json();
+            console.log('✅ Pool data fetched from API');
+          } else {
+            console.warn(`⚠️ API returned ${response.status}, will try blockchain fallback`);
+          }
+        } catch (apiError: any) {
+          console.warn('⚠️ API call failed, using blockchain fallback:', apiError.message);
+          // Continue to blockchain fallback
+        }
+      } else {
+        console.warn('⚠️ API not configured or no token, using blockchain fallback');
       }
       
-      if (!apiUrl) {
-        throw new Error('API URL not configured. Please set VITE_API_URL environment variable.');
-      }
-
-      if (!token) {
-        throw new Error('Authentication required. Please log in.');
-      }
-
-      const response = await fetch(`${apiUrl}/amc-pools/${poolId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      // Fallback: Fetch directly from blockchain if API failed or not available
+      if (!poolData) {
+        console.log('🔍 Fetching pool directly from blockchain...');
+        const poolManagerAddress = getContractAddress('POOL_MANAGER');
+        const poolIdBytes32 = poolId.startsWith('0x') && poolId.length === 66
+          ? poolId
+          : ethers.id(poolId);
+        
+        // Use multiple RPC endpoints with fallback
+        const rpcEndpoints = [
+          import.meta.env.VITE_MANTLE_TESTNET_RPC_URL,
+          'https://mantle-rpc.publicnode.com',
+          'https://mantle.drpc.org',
+          'https://rpc.sepolia.mantle.xyz',
+        ].filter(Boolean);
+        
+        let readOnlyProvider: ethers.Provider | null = null;
+        for (const rpcUrl of rpcEndpoints) {
+          try {
+            readOnlyProvider = new ethers.JsonRpcProvider(rpcUrl);
+            await readOnlyProvider.getBlockNumber();
+            console.log(`✅ Connected to RPC: ${rpcUrl}`);
+            break;
+          } catch (error) {
+            console.warn(`⚠️ Failed to connect to ${rpcUrl}`);
+          }
         }
-      });
+        
+        if (!readOnlyProvider) {
+          throw new Error('Failed to connect to any RPC endpoint');
+        }
+        
+        const poolManagerContract = new ethers.Contract(
+          poolManagerAddress,
+          ["function getPool(bytes32) external view returns (bytes32,address,string,string,uint256,uint256,uint256,uint256,bool,bool,uint256,bytes32[],bytes32[])"],
+          readOnlyProvider
+        );
+        
+        const poolInfo = await poolManagerContract.getPool(poolIdBytes32);
+        
+        // Parse pool data from blockchain
+        poolData = {
+          poolId: poolId,
+          name: poolInfo[2] || poolInfo.name || 'Pool',
+          description: poolInfo[3] || poolInfo.description || '',
+          status: poolInfo[8] ? 'ACTIVE' : 'INACTIVE',
+          totalValue: Number(ethers.formatEther(poolInfo[4] || poolInfo.totalValue || 0n)),
+          tokenSupply: Number(ethers.formatEther(poolInfo[5] || poolInfo.totalShares || 0n)),
+          tokenPrice: 1.0, // Default
+          expectedAPY: 10, // Default
+          minimumInvestment: 100,
+          totalInvestors: 0,
+          assets: [],
+          hasTranches: poolInfo[9] || poolInfo.hasTranches || false,
+          hederaContractId: poolId,
+          mantlePoolId: poolId,
+        };
+        
+        console.log('✅ Pool data fetched from blockchain');
+      }
 
-      if (response.ok) {
-        const data = await response.json();
+      if (poolData) {
+        const data = poolData;
         
         // Fetch tranche IDs from blockchain if not in API response
         let seniorTrancheId = data.seniorTrancheId || data.metadata?.seniorTrancheId;
         let juniorTrancheId = data.juniorTrancheId || data.metadata?.juniorTrancheId;
         const hasTranches = data.hasTranches || data.tranches?.length > 0;
-        const onChainPoolId = data.mantlePoolId || data.metadata?.mantlePoolId || data.hederaContractId;
+        const onChainPoolId = data.mantlePoolId || data.metadata?.mantlePoolId || data.hederaContractId || poolId;
         
         // If pool has tranches but IDs are missing, fetch from blockchain
         if (hasTranches && onChainPoolId && (!seniorTrancheId || !juniorTrancheId)) {
@@ -437,22 +521,25 @@ const PoolDetailPage: React.FC<PoolDetailPageProps> = ({ poolId, onBack }) => {
             juniorTrancheId: juniorTrancheId
           }
         });
+      } else {
+        throw new Error('Failed to fetch pool data from both API and blockchain');
       }
-        } catch (error: any) {
-          console.error('Failed to fetch pool details:', error);
-          const errorMessage = error.message || 'Failed to load pool details';
-          const isConnectionError = errorMessage.includes('Failed to fetch') || errorMessage.includes('Connection refused');
-          
-          toast({
-            title: 'Connection Error',
-            description: isConnectionError 
-              ? 'Cannot connect to backend server. Please ensure the backend is running on port 4001 or check your VITE_API_URL configuration.'
-              : errorMessage,
-            variant: 'destructive'
-          });
-        } finally {
-          setLoading(false);
-        }
+    } catch (error: any) {
+      console.error('Failed to fetch pool details:', error);
+      const errorMessage = error.message || 'Failed to load pool details';
+      
+      toast({
+        title: 'Error Loading Pool',
+        description: errorMessage,
+        variant: 'destructive'
+      });
+    } finally {
+      if (loadingTimeout) {
+        clearTimeout(loadingTimeout);
+      }
+      setLoading(false);
+      console.log('✅ fetchPoolDetails completed, loading set to false');
+    }
   };
 
   const fetchUserHoldings = async () => {

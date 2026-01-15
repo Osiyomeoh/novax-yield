@@ -28,6 +28,7 @@
     "create:pool": "hardhat run scripts/create-pool-direct.js --network mantle_testnet",
     "check:asset-status": "hardhat run scripts/check-asset-status.js --network mantle_testnet",
     "check:asset-pool": "hardhat run scripts/check-asset-pool.js --network mantle_testnet",
+    "check:pools-onchain": "hardhat run scripts/check-pools-onchain.js --network mantle_testnet",
     "grant:amc-role-poolmanager": "hardhat run scripts/grant-amc-role-poolmanager.js --network mantle_testnet",
     "verify:testnet": "hardhat verify --network hedera_testnet",
     "verify:mainnet": "hardhat verify --network hedera_mainnet",

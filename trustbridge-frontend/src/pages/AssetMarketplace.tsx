@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -60,10 +60,12 @@ const SORT_OPTIONS = [
 ];
 
 const AssetMarketplace: React.FC = () => {
+  console.log('🎯 AssetMarketplace component rendered');
+  
   // i18n
   const useTranslation = getUseTranslation();
   const { t } = useTranslation();
-  const { address, isConnected } = useWallet();
+  const { address, isConnected, provider: walletProvider } = useWallet();
   const navigate = useNavigate();
   
   // State
@@ -88,101 +90,163 @@ const AssetMarketplace: React.FC = () => {
   // Fetch AMC pools for trading
   const fetchAmcPools = async () => {
     try {
+      console.log('🚀 fetchAmcPools() called');
       const { mantleContractService } = await import('../services/mantleContractService');
       const mantleService = mantleContractService;
       
-      // Try fetching from blockchain first (most reliable)
+      // Always use direct RPC provider with multiple endpoints for reliability
+      // MetaMask's provider has strict rate limits that cause "too many errors" issues
+      if (!mantleService.provider) {
+        const { ethers } = await import('ethers');
+        
+        // Multiple RPC endpoints with fallback (ordered by speed/reliability)
+        const rpcEndpoints = [
+          import.meta.env.VITE_MANTLE_TESTNET_RPC_URL,
+          // Fastest endpoints first
+          'wss://mantle.drpc.org',
+          'wss://mantle-rpc.publicnode.com',
+          'https://mantle.drpc.org',
+          'https://mantle-rpc.publicnode.com',
+          'https://mantle-public.nodies.app',
+          'https://mantle.api.onfinality.io/public',
+          'https://api.zan.top/mantle-mainnet',
+          'https://rpc.owlracle.info/mantle/70d38ce1826c4a60bb2a8e05a6c8b20f',
+          'https://rpc.mantle.xyz',
+          'https://rpc.sepolia.mantle.xyz',
+          'https://1rpc.io/mantle',
+        ].filter(Boolean);
+        
+        console.log(`🔗 Trying ${rpcEndpoints.length} RPC endpoints...`);
+        
+        let provider: any = null;
+        let connected = false;
+        
+        for (const rpcUrl of rpcEndpoints) {
+          try {
+            console.log(`   Trying: ${rpcUrl}`);
+            // Use WebSocketProvider for wss:// URLs, JsonRpcProvider for https:// URLs
+            const testProvider = rpcUrl.startsWith('wss://') || rpcUrl.startsWith('ws://')
+              ? new ethers.WebSocketProvider(rpcUrl)
+              : new ethers.JsonRpcProvider(rpcUrl);
+            await testProvider.getBlockNumber();
+            provider = testProvider;
+            console.log(`✅ Connected to: ${rpcUrl}`);
+            connected = true;
+            break;
+          } catch (error: any) {
+            console.warn(`   ⚠️ Failed: ${rpcUrl} - ${error.message}`);
+          }
+        }
+        
+        if (!connected || !provider) {
+          throw new Error('Failed to connect to any RPC endpoint');
+        }
+        
+        mantleService.initialize(null as any, provider);
+        console.log('✅ Initialized RPC provider with fallback support');
+      }
+      
+      // Efficient approach: Get poolIds from database, then query contract directly
       let blockchainPools: any[] = [];
       try {
-        console.log('🔍 Fetching pools from blockchain...');
-        blockchainPools = await mantleService.getAllPoolsFromBlockchain();
-        console.log(`✅ Found ${blockchainPools.length} pools on blockchain`);
-      } catch (blockchainError) {
-        console.warn('⚠️ Failed to fetch pools from blockchain:', blockchainError);
-      }
-
-      // Also try fetching from API as fallback/supplement
-      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-      let apiPools: any[] = [];
-      
-      if (token) {
+        console.log('🔍 Fetching pools...');
+        
+        // Step 1: Try to get poolIds from backend API (database) with timeout
+        const { apiService } = await import('../services/api');
+        let poolIds: string[] = [];
+        let useDirectQuery = false;
+        
         try {
-          console.log('🔍 Fetching AMC pools from API...');
-          const apiUrl = import.meta.env.VITE_API_URL || '';
-          if (apiUrl) {
-            const response = await fetch(`${apiUrl}/amc-pools`, {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-              }
-            });
-
-            console.log('📡 AMC pools response status:', response.status);
-            
-            if (response.ok) {
-              const data = await response.json();
-              apiPools = Array.isArray(data) ? data : (data.pools || data.data || []);
-              console.log(`✅ Found ${apiPools.length} pools from API`);
-            } else {
-              console.log('⚠️ AMC pools fetch failed:', response.status, response.statusText);
-            }
-          }
-        } catch (apiError) {
-          console.warn('⚠️ Failed to fetch pools from API:', apiError);
+          // Add timeout to API call (3 seconds - fail fast)
+          const apiPromise = apiService.getAMCPools().catch((err: any) => {
+            console.warn('API call failed:', err.message);
+            return [];
+          });
+          const timeoutPromise = new Promise<any[]>((resolve) => 
+            setTimeout(() => {
+              console.warn('API call timed out after 3 seconds, using fallback');
+              resolve([]);
+            }, 3000)
+          );
+          
+          const dbPools = await Promise.race([apiPromise, timeoutPromise]);
+          poolIds = (dbPools || [])
+            .map((p: any) => p.poolId || p.hederaContractId)
+            .filter((id: string) => id && id !== '');
+          console.log(`📋 Found ${poolIds.length} poolIds in database`);
+          useDirectQuery = poolIds.length > 0;
+        } catch (apiError: any) {
+          console.warn('⚠️ Could not fetch poolIds from API:', apiError.message);
+          console.warn('   Falling back to blockchain scan...');
+          useDirectQuery = false;
         }
+        
+        // Step 2: Query pools based on available data
+        if (useDirectQuery && poolIds.length > 0) {
+          // Use efficient direct query with poolIds
+          console.log(`📡 Querying ${poolIds.length} pools directly from contract...`);
+          blockchainPools = await mantleService.getAllPoolsFromDatabaseAndBlockchain(poolIds);
+          console.log(`✅ Found ${blockchainPools.length} pools on blockchain`);
+        } else {
+          // Fallback: Use old method (scan events) but with limited lookback
+          console.log('📡 Scanning blockchain for pools (fallback method)...');
+          blockchainPools = await mantleService.getAllPoolsFromBlockchain();
+          console.log(`✅ Found ${blockchainPools.length} pools from blockchain scan`);
+        }
+        
+        if (blockchainPools.length > 0) {
+          console.log('📋 Blockchain pools:', blockchainPools.map(p => ({ poolId: p.poolId, name: p.name, isActive: p.isActive, status: p.status })));
+        } else {
+          console.log('ℹ️ No pools found on blockchain');
+        }
+      } catch (blockchainError: any) {
+        console.error('❌ Failed to fetch pools from blockchain:', blockchainError);
+        console.error('   Error type:', blockchainError.constructor.name);
+        console.error('   Error message:', blockchainError.message);
+        console.error('   Error code:', blockchainError.code);
+        // Don't throw - just return empty array so page can still load
+        blockchainPools = [];
       }
 
-      // Merge pools from both sources, prioritizing blockchain pools
-      // Create a map to deduplicate by poolId
-      const poolsMap = new Map<string, any>();
-      
-      // Add blockchain pools first (they're more reliable)
-      blockchainPools.forEach(pool => {
-        if (pool.poolId && pool.isActive) {
-          poolsMap.set(pool.poolId, pool);
+      // Filter to only active pools from blockchain (no API calls)
+      const activePools = blockchainPools.filter((pool: any) => {
+        const isActive = pool.isActive !== false && pool.status !== 'INACTIVE';
+        if (!isActive) {
+          console.log(`⚠️ Skipping inactive pool: ${pool.name || pool.poolId} - isActive: ${pool.isActive}, status: ${pool.status}`);
         }
-      });
-      
-      // Add API pools, but ONLY if they exist on-chain (have hederaContractId/mantlePoolId)
-      // CRITICAL: Only show pools that are verified to exist on-chain
-      apiPools.forEach(pool => {
-        if (pool.poolId && pool.status === 'ACTIVE' && !poolsMap.has(pool.poolId)) {
-          // CRITICAL: Only include pools that have on-chain ID (hederaContractId stores Mantle pool ID)
-          // This ensures we never show database-only pools
-          const hasOnChainId = pool.hederaContractId || pool.mantlePoolId;
-          if (!pool.hederaTokenId && hasOnChainId) { // Exclude old Hedera pools, require on-chain ID
-            poolsMap.set(pool.poolId, pool);
-          } else {
-            console.warn(`⚠️ Skipping database-only pool: ${pool.poolId} (${pool.name}) - no on-chain ID found`);
-          }
-        }
-      });
-
-      const allPools = Array.from(poolsMap.values());
-      
-      // Filter to only active Mantle pools that exist on-chain
-      const mantlePools = allPools.filter((pool: any) => {
-        // Exclude pools that have hederaTokenId (old Hedera field)
-        // CRITICAL: Require hederaContractId or mantlePoolId (on-chain pool ID)
-        // Only show active pools
-        const hasOnChainId = pool.hederaContractId || pool.mantlePoolId;
-        return !pool.hederaTokenId && hasOnChainId && (pool.status === 'ACTIVE' || pool.isActive);
+        return isActive;
       });
         
-      console.log(`📊 Total active Mantle pools: ${mantlePools.length} (${blockchainPools.length} from blockchain, ${apiPools.length} from API)`);
-      setAmcPools(mantlePools);
+      console.log(`📊 Total active pools from contract: ${activePools.length} (out of ${blockchainPools.length} total)`);
+      if (activePools.length > 0) {
+        console.log('✅ Active pools:', activePools.map(p => ({ poolId: p.poolId, name: p.name, isActive: p.isActive })));
+      }
+      setAmcPools(activePools);
     } catch (error) {
       console.log('❌ Failed to fetch AMC pools:', error);
-      setAmcPools([]);
+      setAmcPools([]); // Set empty array so fetchMarketplaceData still runs
+    } finally {
+      // Ensure we always complete, even if there are no pools
+      console.log('✅ fetchAmcPools() completed (may have 0 pools)');
     }
   };
 
   // Fetch ALL assets from Mantle blockchain only
-  const fetchMarketplaceData = async () => {
+  const fetchMarketplaceData = useCallback(async () => {
+    // Add timeout safeguard - ensure loading doesn't hang forever
+    let loadingTimeout: NodeJS.Timeout | null = null;
+    
     try {
       setLoading(true);
       setError(null);
       console.log('🔗 Fetching ALL assets from Mantle blockchain only...');
+      console.log(`📊 Current amcPools state: ${amcPools.length} pools`);
+      
+      // Set timeout safeguard
+      loadingTimeout = setTimeout(() => {
+        console.warn('⚠️ fetchMarketplaceData taking too long, forcing completion');
+        setLoading(false);
+      }, 30000); // 30 second max
       
       // Import mantleContractService for Mantle blockchain
       const { mantleContractService } = await import('../services/mantleContractService');
@@ -191,22 +255,28 @@ const AssetMarketplace: React.FC = () => {
       const marketplaceAssets: any[] = [];
       
       // Add active pools as tradeable items
-      const poolItems = amcPools.map((pool: any) => ({
-        id: `pool-${pool.poolId || pool._id}`,
-        poolId: pool.poolId || pool._id,
-        name: pool.name || pool.poolName || 'Unnamed Pool',
-        description: pool.description || pool.poolDescription || 'Investment pool',
-        imageURI: pool.imageURI || '',
-        price: pool.tokenPrice || (pool.totalValue / pool.tokenSupply) || '0',
-        totalValue: pool.totalValue || pool.totalPoolValue || 0,
-        owner: pool.createdBy || pool.creator || '',
-        category: 'Trading Pool',
-        type: 'pool',
-        assetType: 'Trading Pool',
-        status: pool.status || 'ACTIVE',
-        isActive: pool.status === 'ACTIVE',
-        isTradeable: true,
-        isListed: pool.status === 'ACTIVE',
+      console.log(`🏊 Processing ${amcPools.length} AMC pools for marketplace...`);
+      if (amcPools.length === 0) {
+        console.warn('⚠️ No AMC pools available - amcPools array is empty');
+        console.warn('   This might mean pools are still loading or fetchAmcPools failed');
+      }
+      const poolItems = amcPools.map((pool: any) => {
+        const poolItem = {
+          id: `pool-${pool.poolId || pool._id}`,
+          poolId: pool.poolId || pool._id,
+          name: pool.name || pool.poolName || 'Unnamed Pool',
+          description: pool.description || pool.poolDescription || 'Investment pool',
+          imageURI: pool.imageURI || '',
+          price: pool.tokenPrice || (pool.totalValue / pool.tokenSupply) || '0',
+          totalValue: pool.totalValue || pool.totalPoolValue || 0,
+          owner: pool.createdBy || pool.creator || '',
+          category: 'Trading Pool',
+          type: 'pool',
+          assetType: 'Trading Pool',
+          status: pool.status || 'ACTIVE',
+          isActive: pool.status === 'ACTIVE',
+          isTradeable: true,
+          isListed: pool.status === 'ACTIVE',
         location: 'Mantle Network',
         createdAt: pool.createdAt || pool.launchedAt || new Date().toISOString(),
         expectedAPY: pool.expectedAPY || 0,
@@ -221,10 +291,13 @@ const AssetMarketplace: React.FC = () => {
           senior: { percentage: 70, apy: 8 },
           junior: { percentage: 30, apy: 15 }
         }
-      }));
+      };
+        console.log(`✅ Created pool item: ${poolItem.name} (${poolItem.poolId})`);
+        return poolItem;
+      });
       
       marketplaceAssets.push(...poolItems);
-      console.log(`🏊 Added ${poolItems.length} pools to marketplace`);
+      console.log(`🏊 Added ${poolItems.length} pools to marketplace (total assets: ${marketplaceAssets.length})`);
       
       try {
         // Get all active listings from Mantle blockchain
@@ -312,9 +385,13 @@ const AssetMarketplace: React.FC = () => {
       setAssets([]);
       setCollections([]);
     } finally {
+      if (loadingTimeout) {
+        clearTimeout(loadingTimeout);
+      }
       setLoading(false);
+      console.log('✅ fetchMarketplaceData completed, loading set to false');
     }
-  };
+  }, [amcPools]);
 
   // Refresh marketplace data
   const refreshMarketplaceData = async () => {
@@ -325,24 +402,43 @@ const AssetMarketplace: React.FC = () => {
 
 
   useEffect(() => {
-    console.log('🔄 AssetMarketplace mounted - fetching data...');
-    fetchAmcPools();
+    console.log('🔄 AssetMarketplace useEffect triggered - fetching pools...');
+    console.log('   Current amcPools state:', amcPools.length);
+    
+    const loadData = async () => {
+      try {
+        console.log('🚀 Starting loadData() - calling fetchAmcPools()...');
+        await fetchAmcPools();
+        console.log('✅ fetchAmcPools() completed');
+        // Note: fetchMarketplaceData() will be called automatically by the useEffect that watches amcPools
+      } catch (error) {
+        console.error('❌ Error in loadData():', error);
+      }
+    };
+    loadData();
   }, []);
 
   // Refetch marketplace data when pools are loaded
   useEffect(() => {
-    // Always fetch marketplace data when amcPools changes
+    // Always fetch marketplace data when amcPools changes (even if empty)
     // This ensures we show loading/empty states correctly
+    console.log(`🔄 amcPools changed (${amcPools.length} pools), fetching marketplace data...`);
     fetchMarketplaceData();
-  }, [amcPools]);
+  }, [amcPools, fetchMarketplaceData]);
 
   // Filter to only show pools (deRWA)
   const filteredAssets = React.useMemo(() => {
     // Only return pools - no other assets
-    return assets.filter((asset: any) => {
+    const filtered = assets.filter((asset: any) => {
       if (!asset) return false;
-      return asset.type === 'pool' || asset.category === 'Trading Pool' || asset.assetType === 'Trading Pool';
+      const isPool = asset.type === 'pool' || asset.category === 'Trading Pool' || asset.assetType === 'Trading Pool';
+      if (isPool) {
+        console.log(`✅ Pool found in filteredAssets: ${asset.name} (${asset.poolId})`);
+      }
+      return isPool;
     });
+    console.log(`📊 Filtered assets: ${filtered.length} pools out of ${assets.length} total assets`);
+    return filtered;
   }, [assets, amcPools]);
 
   const formatPrice = (price: string, currency: string) => {
@@ -382,45 +478,6 @@ const AssetMarketplace: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 text-black">
-      {/* Centrifuge-style Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            {/* Logo */}
-            <div className="flex items-center">
-              <span className="text-xl font-bold text-gray-900">TrustBridge</span>
-            </div>
-            
-            {/* Right side - Wallet and TVL */}
-            <div className="flex items-center gap-4">
-              {/* TVL Box - Centrifuge Style */}
-              <div className="bg-white border border-gray-200 rounded-lg px-4 py-2 shadow-sm">
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4 text-gray-600" />
-                  <div>
-                    <p className="text-xs text-gray-500">TVL on {currentDate}</p>
-                    <p className="text-sm font-semibold text-gray-900">
-                      ${totalTVL.toLocaleString()} USD
-                    </p>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Wallet Address */}
-              {isConnected && address ? (
-                <button className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-900 transition-colors">
-                  {address.slice(0, 6)}...{address.slice(-4)}
-                </button>
-              ) : (
-                <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors">
-                  Connect Wallet
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-8 sm:py-12">
         {/* Loading State */}
         {loading && (

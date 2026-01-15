@@ -113,37 +113,13 @@ const AMCDashboard: React.FC = () => {
   // Fetch pool count for navigation badge
   const fetchPoolCount = async () => {
     try {
-      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-      const apiUrl = import.meta.env.VITE_API_URL || '';
-      if (!apiUrl || !token) {
-        return;
-      }
-
-      const response = await fetch(`${apiUrl}/amc-pools`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const poolsData = await response.json();
-        const allPools = Array.isArray(poolsData) ? poolsData : poolsData.data || [];
-        
-        // For Mantle pools: hederaContractId stores the Mantle pool ID (legacy field name)
-        // Filter out only pools that have hederaTokenId (old Hedera-specific field)
-        // Keep pools with hederaContractId as these are Mantle pools
-        const mantlePools = allPools.filter((pool: any) => {
-          // Exclude pools that have hederaTokenId (old Hedera field)
-          // Keep pools with hederaContractId (Mantle pool ID is stored here)
-          return !pool.hederaTokenId;
-        });
-        
-        setPoolCount(mantlePools.length);
-      }
+      // Fetch pools directly from blockchain contract only
+      const blockchainPools = await mantleContractService.getAllPoolsFromBlockchain();
+      const activePools = blockchainPools.filter((pool: any) => pool.isActive !== false);
+      setPoolCount(activePools.length);
     } catch (error) {
-      console.error('Failed to fetch pool count:', error);
+      console.error('❌ Failed to fetch pool count from contract:', error);
+      setPoolCount(0);
     }
   };
 

@@ -17,6 +17,23 @@ import AMCManagerABI from '../contracts/AMCManager.json';
 export class MantleContractService {
   private signer: ethers.Signer | null = null;
   private provider: ethers.Provider | null = null;
+  
+  // RPC endpoints with fallback support (ordered by speed/reliability)
+  private readonly rpcEndpoints = [
+    import.meta.env.VITE_MANTLE_TESTNET_RPC_URL,
+    // Fastest endpoints first
+    'wss://mantle.drpc.org',
+    'wss://mantle-rpc.publicnode.com',
+    'https://mantle.drpc.org',
+    'https://mantle-rpc.publicnode.com',
+    'https://mantle-public.nodies.app',
+    'https://mantle.api.onfinality.io/public',
+    'https://api.zan.top/mantle-mainnet',
+    'https://rpc.owlracle.info/mantle/70d38ce1826c4a60bb2a8e05a6c8b20f',
+    'https://rpc.mantle.xyz',
+    'https://rpc.sepolia.mantle.xyz',
+    'https://1rpc.io/mantle',
+  ].filter(Boolean);
 
   /**
    * Initialize with signer and provider
@@ -24,6 +41,29 @@ export class MantleContractService {
   initialize(signer: ethers.Signer, provider: ethers.Provider) {
     this.signer = signer;
     this.provider = provider;
+  }
+  
+  /**
+   * Create RPC provider with fallback to multiple endpoints
+   * Supports both HTTP and WebSocket endpoints
+   */
+  private async createRpcProvider(): Promise<ethers.JsonRpcProvider | ethers.WebSocketProvider> {
+    for (const rpcUrl of this.rpcEndpoints) {
+      try {
+        // Use WebSocketProvider for wss:// URLs, JsonRpcProvider for https:// URLs
+        const provider = rpcUrl.startsWith('wss://') || rpcUrl.startsWith('ws://')
+          ? new ethers.WebSocketProvider(rpcUrl)
+          : new ethers.JsonRpcProvider(rpcUrl);
+        
+        await provider.getBlockNumber(); // Test connection
+        console.log(`✅ Connected to RPC: ${rpcUrl}`);
+        return provider;
+      } catch (error: any) {
+        console.warn(`⚠️ Failed to connect to RPC: ${rpcUrl} - ${error.message}`);
+        continue;
+      }
+    }
+    throw new Error('Failed to connect to any RPC endpoint');
   }
 
   /**
@@ -512,8 +552,7 @@ export class MantleContractService {
     let provider = this.provider;
     
     if (!provider) {
-      const rpcUrl = import.meta.env.VITE_MANTLE_TESTNET_RPC_URL || 'https://rpc.sepolia.mantle.xyz';
-      provider = new ethers.JsonRpcProvider(rpcUrl);
+      provider = await this.createRpcProvider();
       console.log('⚠️ Using read-only provider for getUserAssetsFromFactory');
     }
     
@@ -1270,9 +1309,8 @@ export class MantleContractService {
     let provider = this.provider;
     
     if (!provider) {
-      // Create a read-only provider if no provider is set
-      const rpcUrl = import.meta.env.VITE_MANTLE_TESTNET_RPC_URL || 'https://rpc.sepolia.mantle.xyz';
-      provider = new ethers.JsonRpcProvider(rpcUrl);
+      // Create a read-only provider with fallback
+      provider = await this.createRpcProvider();
       console.log('⚠️ Using read-only provider for getUserAssets');
     }
 
@@ -1389,9 +1427,8 @@ export class MantleContractService {
     let provider = this.provider;
     
     if (!provider) {
-      // Create a read-only provider if no provider is set
-      const rpcUrl = import.meta.env.VITE_MANTLE_TESTNET_RPC_URL || 'https://rpc.sepolia.mantle.xyz';
-      provider = new ethers.JsonRpcProvider(rpcUrl);
+      // Create a read-only provider with fallback
+      provider = await this.createRpcProvider();
       console.log('⚠️ Using read-only provider for getAllRWAAssets');
     }
 
@@ -1840,9 +1877,8 @@ export class MantleContractService {
     let provider = this.provider;
     
     if (!provider) {
-      // Create a read-only provider if no provider is set
-      const rpcUrl = import.meta.env.VITE_MANTLE_TESTNET_RPC_URL || 'https://rpc.sepolia.mantle.xyz';
-      provider = new ethers.JsonRpcProvider(rpcUrl);
+      // Create a read-only provider with fallback
+      provider = await this.createRpcProvider();
       console.log('⚠️ Using read-only provider for getAllActiveListings');
     }
 
@@ -1939,7 +1975,156 @@ export class MantleContractService {
   // POOL METHODS
 
   /**
+   * Get all pools by querying contract directly with poolIds from database
+   * This is more efficient than scanning blocks - uses database as index
+   */
+  async getAllPoolsFromDatabaseAndBlockchain(poolIds: string[]): Promise<any[]> {
+    // For read-only operations, we can use a provider even if signer is not set
+    let provider = this.provider;
+    
+    if (!provider) {
+      // Use helper method with multiple RPC endpoints fallback
+      provider = await this.createRpcProvider();
+    }
+
+    try {
+      console.log(`🔍 Fetching ${poolIds.length} pools from blockchain using poolIds from database...`);
+      const poolManagerAddress = getContractAddress('POOL_MANAGER');
+      
+      // Extract ABI array from JSON object
+      const poolManagerABI = Array.isArray(PoolManagerABI) 
+        ? PoolManagerABI 
+        : PoolManagerABI.abi || PoolManagerABI;
+      
+      const poolManager = new ethers.Contract(
+        poolManagerAddress,
+        poolManagerABI,
+        provider
+      );
+
+      // Query each pool directly by poolId (much faster than scanning blocks)
+      const pools = await Promise.all(
+        poolIds.map(async (poolId) => {
+          try {
+            // Ensure poolId is bytes32 format
+            const poolIdBytes32 = poolId.startsWith('0x') && poolId.length === 66
+              ? poolId
+              : ethers.id(poolId);
+            
+            const poolResult = await poolManager.getPool(poolIdBytes32);
+            
+            // Parse the tuple into a structured object
+            const poolInfo = {
+              poolId: poolResult[0] || poolResult.poolId,
+              creator: poolResult[1] || poolResult.creator,
+              name: poolResult[2] || poolResult.name,
+              description: poolResult[3] || poolResult.description,
+              totalValue: poolResult[4] || poolResult.totalValue,
+              totalShares: poolResult[5] || poolResult.totalShares,
+              managementFee: poolResult[6] || poolResult.managementFee,
+              performanceFee: poolResult[7] || poolResult.performanceFee,
+              isActive: poolResult[8] !== undefined ? poolResult[8] : (poolResult.isActive !== undefined ? poolResult.isActive : false),
+              hasTranches: poolResult[9] !== undefined ? poolResult[9] : (poolResult.hasTranches !== undefined ? poolResult.hasTranches : false),
+              createdAt: poolResult[10] || poolResult.createdAt,
+              assets: poolResult[11] || poolResult.assets || [],
+              tranches: poolResult[12] || poolResult.tranches || [],
+            };
+            
+            // Check if pool is valid (not zero hash)
+            if (!poolInfo.poolId || poolInfo.poolId === '0x0000000000000000000000000000000000000000000000000000000000000000') {
+              console.warn(`⚠️ Pool ${poolId} returned zero hash - pool doesn't exist on-chain`);
+              return null;
+            }
+            
+            // Get tranche info if pool has tranches
+            let tranches = [];
+            let seniorTrancheId: string | undefined;
+            let juniorTrancheId: string | undefined;
+            
+            if (poolInfo.hasTranches && poolInfo.tranches && poolInfo.tranches.length > 0) {
+              tranches = await Promise.all(
+                poolInfo.tranches.map(async (trancheId: string) => {
+                  try {
+                    const trancheInfo = await poolManager.getTranche(trancheId);
+                    const trancheType = trancheInfo.trancheType === 0 ? 'SENIOR' : 'JUNIOR';
+                    
+                    if (trancheType === 'SENIOR') {
+                      seniorTrancheId = trancheId;
+                    } else {
+                      juniorTrancheId = trancheId;
+                    }
+                    
+                    return {
+                      trancheId: trancheId,
+                      type: trancheType,
+                      name: trancheInfo.name,
+                      tokenContract: trancheInfo.tokenContract,
+                      percentage: Number(trancheInfo.percentage),
+                      expectedAPY: Number(trancheInfo.expectedAPY),
+                      totalInvested: ethers.formatEther(trancheInfo.totalInvested),
+                      totalShares: ethers.formatEther(trancheInfo.totalShares),
+                      isActive: trancheInfo.isActive,
+                    };
+                  } catch (error) {
+                    console.warn(`Failed to fetch tranche ${trancheId}:`, error);
+                    return null;
+                  }
+                })
+              );
+              tranches = tranches.filter(t => t !== null);
+            }
+
+            return {
+              poolId: poolInfo.poolId,
+              name: poolInfo.name,
+              description: poolInfo.description,
+              creator: poolInfo.creator,
+              totalValue: ethers.formatEther(poolInfo.totalValue),
+              totalShares: ethers.formatEther(poolInfo.totalShares),
+              managementFee: Number(poolInfo.managementFee),
+              performanceFee: Number(poolInfo.performanceFee),
+              isActive: poolInfo.isActive,
+              hasTranches: poolInfo.hasTranches,
+              createdAt: Number(poolInfo.createdAt) * 1000,
+              assets: poolInfo.assets,
+              tranches: tranches,
+              seniorTrancheId: seniorTrancheId,
+              juniorTrancheId: juniorTrancheId,
+              metadata: {
+                seniorTrancheId: seniorTrancheId,
+                juniorTrancheId: juniorTrancheId,
+              },
+              status: poolInfo.isActive ? 'ACTIVE' : 'INACTIVE',
+              hederaContractId: poolInfo.poolId,
+            };
+          } catch (error: any) {
+            // If pool doesn't exist on-chain, log and skip
+            if (error.message?.includes('Pool not found') || 
+                error.message?.includes('zero hash') || 
+                error.reason?.includes('Pool not found')) {
+              console.warn(`⚠️ Pool ${poolId} doesn't exist on-chain: ${error.message}`);
+              return null;
+            }
+            console.error(`Error fetching pool ${poolId}:`, error);
+            return null;
+          }
+        })
+      );
+
+      // Filter out null results (pools that don't exist on-chain)
+      const validPools = pools.filter((pool): pool is any => pool !== null);
+      console.log(`✅ Found ${validPools.length}/${poolIds.length} pools on-chain`);
+      
+      return validPools;
+    } catch (error: any) {
+      console.error('❌ Error fetching pools from blockchain:', error);
+      throw new Error(`Failed to fetch pools: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
    * Get all pools from PoolManager contract
+   * DEPRECATED: Use getAllPoolsFromDatabaseAndBlockchain() instead - it's more efficient
    * Queries PoolCreated events to get all pools on-chain
    */
   async getAllPoolsFromBlockchain(): Promise<any[]> {
@@ -1947,10 +2132,8 @@ export class MantleContractService {
     let provider = this.provider;
     
     if (!provider) {
-      // Create a read-only provider if no provider is set
-      const rpcUrl = import.meta.env.VITE_MANTLE_TESTNET_RPC_URL || 'https://rpc.sepolia.mantle.xyz';
-      provider = new ethers.JsonRpcProvider(rpcUrl);
-      console.log('⚠️ Using read-only provider for getAllPoolsFromBlockchain');
+      // Use helper method with multiple RPC endpoints fallback
+      provider = await this.createRpcProvider();
     }
 
     try {
@@ -1968,13 +2151,19 @@ export class MantleContractService {
         provider
       );
 
-      // Get total pools count
-      const totalPools = Number(await poolManager.totalPools());
-      console.log(`📊 Total pools on-chain: ${totalPools}`);
-
-      if (totalPools === 0) {
-        return [];
+      // Try to get total pools count (may not exist in all contract versions)
+      let totalPools = 0;
+      try {
+        totalPools = Number(await poolManager.totalPools());
+        console.log(`📊 Total pools on-chain: ${totalPools}`);
+      } catch (error: any) {
+        // totalPools() may not exist or may fail - continue with event querying
+        console.warn('⚠️ Could not get totalPools count, querying events directly:', error.message);
+        totalPools = 999; // Set high number to continue with event querying
       }
+
+      // Even if totalPools is 0, we still query events to find pools
+      // (some contracts may not track totalPools correctly)
 
       // Query PoolCreated events to get all pool IDs
       // Use chunking to respect the 10,000 block limit per query
@@ -2032,14 +2221,33 @@ export class MantleContractService {
         events.map(async (event) => {
           try {
             const poolId = event.args.poolId;
-            const poolInfo = await poolManager.getPool(poolId);
+            const poolResult = await poolManager.getPool(poolId);
+            
+            // Parse the tuple into a structured object (getPool returns a tuple)
+            // Tuple structure: (poolId, creator, name, description, totalValue, totalShares, 
+            //                   managementFee, performanceFee, isActive, hasTranches, createdAt, assets, tranches)
+            const poolInfo = {
+              poolId: poolResult[0] || poolResult.poolId,
+              creator: poolResult[1] || poolResult.creator,
+              name: poolResult[2] || poolResult.name,
+              description: poolResult[3] || poolResult.description,
+              totalValue: poolResult[4] || poolResult.totalValue,
+              totalShares: poolResult[5] || poolResult.totalShares,
+              managementFee: poolResult[6] || poolResult.managementFee,
+              performanceFee: poolResult[7] || poolResult.performanceFee,
+              isActive: poolResult[8] || poolResult.isActive,
+              hasTranches: poolResult[9] || poolResult.hasTranches,
+              createdAt: poolResult[10] || poolResult.createdAt,
+              assets: poolResult[11] || poolResult.assets || [],
+              tranches: poolResult[12] || poolResult.tranches || [],
+            };
             
             // Get tranche info if pool has tranches
             let tranches = [];
             let seniorTrancheId: string | undefined;
             let juniorTrancheId: string | undefined;
             
-            if (poolInfo.hasTranches && poolInfo.tranches.length > 0) {
+            if (poolInfo.hasTranches && poolInfo.tranches && poolInfo.tranches.length > 0) {
               tranches = await Promise.all(
                 poolInfo.tranches.map(async (trancheId: string) => {
                   try {
@@ -2147,9 +2355,8 @@ export class MantleContractService {
     let provider = this.provider;
     
     if (!provider) {
-      // Create a read-only provider if no provider is set
-      const rpcUrl = import.meta.env.VITE_MANTLE_TESTNET_RPC_URL || 'https://rpc.sepolia.mantle.xyz';
-      provider = new ethers.JsonRpcProvider(rpcUrl);
+      // Create a read-only provider with fallback
+      provider = await this.createRpcProvider();
       console.log('⚠️ Using read-only provider for getTrustBalance');
     }
 
