@@ -23,7 +23,7 @@ import { useAdmin } from '../contexts/AdminContext';
 import { useWallet } from '../contexts/WalletContext';
 import { AdminGuard } from '../contexts/AdminContext';
 import { contractService } from '../services/contractService';
-import { mantleContractService } from '../services/mantleContractService';
+// Mantle service removed - using Etherlink/Novax contracts instead
 import { ethers } from 'ethers';
 import Card, { CardContent } from '../components/UI/Card';
 import Button from '../components/UI/Button';
@@ -57,12 +57,9 @@ const AdminDashboard: React.FC = () => {
 
   const loadAdminStats = async () => {
     try {
-      // Fetch real data from blockchain
-      const rpcUrl = import.meta.env.VITE_MANTLE_TESTNET_RPC_URL || 'https://rpc.sepolia.mantle.xyz';
-      const provider = new ethers.JsonRpcProvider(rpcUrl);
-      mantleContractService.initialize(null as any, provider);
-
-      const blockchainAssets = await mantleContractService.getAllRWAAssets();
+      // Mantle service removed - using Etherlink/Novax contracts instead
+      // TODO: Replace with Etherlink/Novax asset fetching
+      const blockchainAssets: any[] = [];
       
       const stats = {
         totalAssets: blockchainAssets.length,
@@ -104,42 +101,22 @@ const AdminDashboard: React.FC = () => {
     category: 'core' | 'amc' | 'system';
     priority: number;
   }> = [
-    // Core Asset Management (All Admins)
+    // Novax Yield - Receivables Management (AMC Admins)
     {
-      id: 'asset-management',
-      title: 'Asset Management',
-      description: 'Review and approve RWA assets for tokenization',
-      icon: Package,
-      href: '/dashboard/admin/assets',
-      available: isAdmin || isVerifier || isAmcAdmin,
-      category: 'core',
-      priority: 1
-    },
-    {
-      id: 'verification-dashboard',
-      title: 'Verification Dashboard',
-      description: 'Review and approve asset verification requests',
-      icon: Shield,
-      href: '/dashboard/verification',
-      available: isAdmin || isVerifier,
-      category: 'core',
-      priority: 2
-    },
-    
-    // AMC Management (AMC Admins & Super Admins)
-    {
-      id: 'amc-dashboard',
-      title: 'AMC Dashboard',
-      description: 'Manage physical inspection, legal transfer, and asset activation',
-      icon: Building2,
-      href: '/dashboard/amc-dashboard',
+      id: 'receivables-management',
+      title: 'Receivables Management',
+      description: 'View and verify trade receivables for pool creation',
+      icon: FileText,
+      href: '/dashboard/admin/receivables',
       available: isAmcAdmin || isSuperAdmin || isPlatformAdmin,
       category: 'amc',
       priority: 1
     },
+    
+    // AMC Management (AMC Admins & Super Admins)
     {
       id: 'amc-pool-management',
-      title: 'AMC Pool Management',
+      title: 'Pool Management',
       description: 'Create and manage investment pools',
       icon: BarChart3,
       href: '/dashboard/admin/amc-pools',
@@ -149,14 +126,19 @@ const AdminDashboard: React.FC = () => {
     },
     {
       id: 'dividend-management',
-      title: 'Dividend Management',
-      description: 'Create and manage dividend distributions',
+      title: 'Yield Distribution',
+      description: 'Distribute yield to investors after payment received',
       icon: DollarSign,
       href: '/dashboard/admin/dividend-management',
       available: isAmcAdmin || isSuperAdmin || isPlatformAdmin,
       category: 'amc',
       priority: 3
     },
+    
+    // Removed RWA-related actions (not needed for Novax Yield receivables flow)
+    // - Asset Management (RWA)
+    // - Verification Dashboard (RWA)
+    // - AMC Dashboard (RWA)
     
     // User & System Management (Super Admins & Platform Admins)
     {

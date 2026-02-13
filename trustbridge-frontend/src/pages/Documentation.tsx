@@ -61,7 +61,7 @@ const Documentation: React.FC = () => {
               <div>
                 <h2 className="text-3xl font-bold mb-4">Welcome to TrustBridge Africa</h2>
                 <p className="text-lg text-gray-600 mb-6">
-                  TrustBridge Africa is a revolutionary real-world asset (RWA) tokenization platform built on Mantle Network. 
+                  Novax Yield is a global trading platform for real-world asset (RWA) tokenization and trade receivables financing built on Etherlink Network. 
                   We enable African asset owners to tokenize their assets, making them accessible to global investors 
                   through blockchain technology.
                 </p>
@@ -131,16 +131,16 @@ const Documentation: React.FC = () => {
                 </div>
 
                 <div className="border-l-4 border-blue-500 pl-6">
-                  <h3 className="text-xl font-semibold mb-3">Step 2: Connect to Mantle Sepolia</h3>
+                  <h3 className="text-xl font-semibold mb-3">Step 2: Connect to Etherlink Shadownet</h3>
                   <p className="text-gray-600 mb-4">
-                    Add Mantle Sepolia Testnet to your MetaMask:
+                    Connect to Etherlink Shadownet (automatic via Privy):
                   </p>
                   <div className="bg-gray-50 p-4 rounded-lg font-mono text-sm">
-                    <div className="mb-2"><strong>Network Name:</strong> Mantle Sepolia</div>
-                    <div className="mb-2"><strong>RPC URL:</strong> https://rpc.sepolia.mantle.xyz</div>
-                    <div className="mb-2"><strong>Chain ID:</strong> 5003</div>
-                    <div className="mb-2"><strong>Currency Symbol:</strong> MNT</div>
-                    <div><strong>Block Explorer:</strong> https://explorer.sepolia.mantle.xyz</div>
+                    <div className="mb-2"><strong>Network Name:</strong> Etherlink Shadownet</div>
+                    <div className="mb-2"><strong>RPC URL:</strong> https://node.shadownet.etherlink.com</div>
+                    <div className="mb-2"><strong>Chain ID:</strong> 127823</div>
+                    <div className="mb-2"><strong>Currency Symbol:</strong> XTZ</div>
+                    <div><strong>Block Explorer:</strong> https://explorer.shadownet.etherlink.com</div>
                   </div>
                 </div>
 
@@ -186,7 +186,7 @@ const Documentation: React.FC = () => {
               <h2 className="text-3xl font-bold mb-6">Tokenize Your Assets</h2>
               
               <p className="text-lg text-gray-600 mb-6">
-                Transform your real-world assets into tradeable digital tokens on the Mantle blockchain. 
+                Transform your real-world assets and trade receivables into tradeable digital tokens on the Etherlink blockchain. 
                 This enables fractional ownership and access to global capital markets.
               </p>
 
@@ -256,7 +256,7 @@ const Documentation: React.FC = () => {
                         Your asset will be reviewed by our Asset Management Company (AMC) team. Once approved:
                       </p>
                       <ul className="list-disc list-inside space-y-1 text-gray-600">
-                        <li>Your asset receives a unique token ID on Mantle</li>
+                        <li>Your asset receives a unique token ID on Etherlink</li>
                         <li>Metadata is stored on IPFS (decentralized storage)</li>
                         <li>Asset status is updated on-chain via smart contracts</li>
                         <li>Asset becomes available for pooling</li>
@@ -274,7 +274,7 @@ const Documentation: React.FC = () => {
                         AMC may bundle your asset into a pool with other assets:
                       </p>
                       <ul className="list-disc list-inside space-y-1 text-gray-600">
-                        <li>Pool tokens are created as ERC-20 tokens on Mantle</li>
+                        <li>Pool tokens are created as ERC-20 tokens on Etherlink</li>
                         <li>Pool becomes available for investment</li>
                         <li>You earn returns as investments are made</li>
                         <li>Track earnings in your portfolio dashboard</li>
@@ -347,7 +347,7 @@ const Documentation: React.FC = () => {
                     <li>Approve TRUST token spending (if first time)</li>
                     <li>Approve the investment transaction in MetaMask</li>
                     <li>Wait for transaction confirmation</li>
-                    <li>Receive pool tokens on Mantle</li>
+                    <li>Receive pool tokens on Etherlink</li>
                   </ol>
                 </div>
 
@@ -358,7 +358,7 @@ const Documentation: React.FC = () => {
                     <li>Track APY and cumulative returns</li>
                     <li>View real-time ROI calculations</li>
                     <li>Receive dividends automatically as TRUST tokens</li>
-                    <li>View transaction history on Mantle Explorer</li>
+                    <li>View transaction history on Etherlink Explorer</li>
                     <li>Redeem investments when pool matures</li>
                   </ul>
                 </div>
@@ -405,7 +405,7 @@ const Documentation: React.FC = () => {
               <h2 className="text-3xl font-bold mb-6">Technical Architecture</h2>
               
               <p className="text-lg text-gray-600 mb-6">
-                TrustBridge is built on Mantle's EVM-compatible Layer 2 blockchain infrastructure, 
+                Novax Yield is built on Etherlink's EVM-compatible blockchain infrastructure, 
                 providing low fees, high throughput, and seamless Ethereum compatibility.
               </p>
 
@@ -415,14 +415,14 @@ const Documentation: React.FC = () => {
                 <div className="border rounded-lg p-6">
                   <h4 className="text-xl font-semibold mb-3 flex items-center gap-2">
                     <Globe className="w-5 h-5 text-blue-600" />
-                    Mantle Network
+                    Etherlink Network
                   </h4>
                   <ul className="list-disc list-inside space-y-2 text-gray-600">
                     <li><strong>Type:</strong> EVM-compatible Layer 2</li>
                     <li><strong>Chain ID:</strong> 5003 (Sepolia Testnet)</li>
                     <li><strong>Gas Fees:</strong> ~$0.001 per transaction</li>
                     <li><strong>Finality:</strong> Fast block confirmation</li>
-                    <li><strong>Explorer:</strong> <a href="https://explorer.sepolia.mantle.xyz" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">explorer.sepolia.mantle.xyz</a></li>
+                    <li><strong>Explorer:</strong> <a href="https://explorer.shadownet.etherlink.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">explorer.shadownet.etherlink.com</a></li>
                   </ul>
                 </div>
 
@@ -596,7 +596,7 @@ const Documentation: React.FC = () => {
                   <ul className="space-y-2 text-gray-600">
                     <li className="flex items-start gap-2">
                       <CheckCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                      <span>Native utility token on Mantle blockchain</span>
+                      <span>Platform utility token on Etherlink blockchain</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
@@ -685,9 +685,9 @@ const Documentation: React.FC = () => {
                 </div>
 
                 <div className="border rounded-lg p-6">
-                  <h3 className="text-xl font-semibold mb-3">Why Mantle Network?</h3>
+                  <h3 className="text-xl font-semibold mb-3">Why Etherlink Network?</h3>
                   <p className="text-gray-600 mb-3">
-                    Mantle offers several advantages:
+                    Etherlink offers several advantages:
                   </p>
                   <ul className="list-disc list-inside space-y-1 text-gray-600">
                     <li>EVM-compatibility for seamless Ethereum integration</li>
@@ -701,26 +701,26 @@ const Documentation: React.FC = () => {
                 <div className="border rounded-lg p-6">
                   <h3 className="text-xl font-semibold mb-3">Do I need crypto to use TrustBridge?</h3>
                   <p className="text-gray-600">
-                    Yes, you need MNT (Mantle token) in MetaMask for transaction fees. The platform may 
+                    Yes, you need XTZ (native token) for transaction fees. The platform may 
                     sponsor gas fees for select transactions. For testnet, you can get free test tokens 
                     from our faucet.
                   </p>
                 </div>
 
                 <div className="border rounded-lg p-6">
-                  <h3 className="text-xl font-semibold mb-3">How do I get MNT?</h3>
+                  <h3 className="text-xl font-semibold mb-3">How do I get XTZ?</h3>
                   <p className="text-gray-600 mb-3">
-                    For mainnet: Purchase MNT on exchanges like Binance, Coinbase, or bridge ETH to Mantle Network.
+                    For mainnet: Purchase XTZ on exchanges or bridge from other networks to Etherlink.
                   </p>
                   <p className="text-gray-600">
-                    For testnet: Use our "Get Test Tokens" feature for free Mantle Sepolia tokens.
+                    For testnet: Use our "Get Test Tokens" feature for free test tokens.
                   </p>
                 </div>
 
                 <div className="border rounded-lg p-6">
                   <h3 className="text-xl font-semibold mb-3">What are the fees?</h3>
                   <ul className="space-y-2 text-gray-600">
-                    <li><strong>Mantle Network:</strong> ~$0.001 per transaction</li>
+                    <li><strong>Etherlink Network:</strong> ~$0.001 per transaction</li>
                     <li><strong>IPFS Storage:</strong> Free (via Pinata)</li>
                     <li><strong>Platform Fees:</strong> Subject to governance</li>
                   </ul>
@@ -729,7 +729,7 @@ const Documentation: React.FC = () => {
                 <div className="border rounded-lg p-6">
                   <h3 className="text-xl font-semibold mb-3">Is my asset data secure?</h3>
                   <p className="text-gray-600">
-                    Yes. Metadata is stored on decentralized IPFS, transactions are immutable on Mantle, 
+                    Yes. Metadata is stored on decentralized IPFS, transactions are immutable on Etherlink, 
                     and your wallet keys never leave your device. We use industry-standard encryption and 
                     follow best practices for security.
                   </p>

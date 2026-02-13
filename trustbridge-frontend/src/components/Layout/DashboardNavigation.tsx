@@ -1,26 +1,37 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { TrendingUp, BarChart3, Settings, X, Zap, User, LogOut, ChevronLeft, ChevronRight, ChevronDown, Shield, Coins, Vote, BarChart3 as BarChart, Building2, Crown, TreePine, Package, PieChart, Bot, Phone, ArrowLeftRight, DollarSign } from 'lucide-react';
+import { TrendingUp, BarChart3, Settings, X, Zap, User, LogOut, ChevronLeft, ChevronRight, ChevronDown, Shield, Coins, Vote, BarChart3 as BarChart, Building2, Crown, TreePine, Package, PieChart, Bot, Phone, ArrowLeftRight, DollarSign, FileText } from 'lucide-react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useSidebar } from '../../contexts/SidebarContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWallet } from '../../contexts/WalletContext';
 import { useAdmin } from '../../contexts/AdminContext';
-import { useTrustTokenBalance } from '../../hooks/useTrustTokenBalance';
 import { useToast } from '../../hooks/useToast';
+import { useNVXBalance } from '../../hooks/useNVXBalance';
+import NovaxLogo from '../UI/NovaxLogo';
 
 const DashboardNavigation: React.FC = () => {
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
-  const [openDropdowns, setOpenDropdowns] = useState<Set<string>>(new Set());
+  const [openDropdowns, setOpenDropdowns] = useState<Set<string>>(new Set(['investment'])); // Auto-expand Investment section
   const { isCollapsed, toggleSidebar, isMobileSidebarOpen, toggleMobileSidebar } = useSidebar();
   
   const { logout, user } = useAuth();
   const { disconnectWallet, address } = useWallet();
   const { isAdmin, isVerifier } = useAdmin();
-  const { balance: trustBalance, loading: trustLoading } = useTrustTokenBalance();
   const { toast } = useToast();
+  const { balance: nvxBalance, loading: nvxLoading } = useNVXBalance();
   const location = useLocation();
   const navigate = useNavigate();
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Auto-expand Investment section when on related routes
+  useEffect(() => {
+    const investmentRoutes = ['/dashboard/pools', '/dashboard/pool-dashboard', '/dashboard/staking'];
+    const isOnInvestmentRoute = investmentRoutes.some(route => location.pathname.startsWith(route));
+    
+    if (isOnInvestmentRoute) {
+      setOpenDropdowns(prev => new Set([...prev, 'investment']));
+    }
+  }, [location.pathname]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -31,7 +42,15 @@ const DashboardNavigation: React.FC = () => {
       const sidebar = document.querySelector('nav');
       if (sidebar && !sidebar.contains(target)) {
         setIsUserDropdownOpen(false);
-        setOpenDropdowns(new Set());
+        // Keep Investment dropdown open when clicking outside
+        setOpenDropdowns(prev => {
+          const newSet = new Set(prev);
+          // Keep investment open
+          if (!newSet.has('investment')) {
+            newSet.add('investment');
+          }
+          return newSet;
+        });
       }
     };
 
@@ -89,13 +108,16 @@ const DashboardNavigation: React.FC = () => {
 
   const navItems = [
     { id: 'discovery', label: 'Marketplace', icon: TrendingUp, href: '/dashboard/marketplace' },
+    { id: 'pools', label: 'Pool Marketplace', icon: BarChart, href: '/dashboard/pools' },
+    { id: 'staking', label: 'Staking Vault', icon: Coins, href: '/dashboard/staking' },
     { id: 'profile', label: 'Profile', icon: User, href: '/dashboard/profile' },
     { id: 'settings', label: 'Settings', icon: Settings, href: '/dashboard/settings' },
   ];
 
   const investmentItems = [
-    { id: 'pools', label: 'Pool Marketplace', icon: BarChart, href: '/pools' },
-    { id: 'pool-dashboard', label: 'Pool Management', icon: Building2, href: '/pool-dashboard' },
+    { id: 'pools', label: 'Pool Marketplace', icon: BarChart, href: '/dashboard/pools' },
+    { id: 'pool-dashboard', label: 'Pool Management', icon: Building2, href: '/dashboard/pool-dashboard' },
+    { id: 'staking', label: 'Staking Vault', icon: Coins, href: '/dashboard/staking' },
   ];
 
   // Check KYC status for RWA features
@@ -103,11 +125,18 @@ const DashboardNavigation: React.FC = () => {
   
   const rwaItems = [
     { 
-      id: 'create-rwa-asset', 
-      label: isKYCApproved ? 'Create RWA Asset' : 'Create RWA Asset (KYC Required)', 
+      id: 'create-receivable', 
+      label: 'Create Receivable', 
+      icon: FileText, 
+      href: '/dashboard/create-receivable',
+      disabled: false
+    },
+    { 
+      id: 'create-asset', 
+      label: 'Create Asset', 
       icon: TreePine, 
-      href: '/dashboard/create-rwa-asset',
-      disabled: !isKYCApproved
+      href: '/dashboard/create-asset',
+      disabled: false
     },
     { id: 'rwa-management', label: 'RWA Management', icon: Package, href: '/dashboard/rwa-management' },
     { id: 'amc-dashboard', label: 'AMC Dashboard', icon: Building2, href: '/dashboard/amc-dashboard' },
@@ -119,9 +148,10 @@ const DashboardNavigation: React.FC = () => {
 
   const adminItems = [
     { id: 'admin-dashboard', label: 'Admin Dashboard', icon: Crown, href: '/dashboard/admin' },
-    { id: 'admin-assets', label: 'Asset Management', icon: Package, href: '/dashboard/admin/assets' },
-    { id: 'admin-pools', label: 'AMC Pool Management', icon: BarChart3, href: '/dashboard/admin/amc-pools' },
-    { id: 'admin-dividends', label: 'Dividend Management', icon: DollarSign, href: '/dashboard/admin/dividend-management' },
+    { id: 'admin-receivables', label: 'Receivables Management', icon: FileText, href: '/dashboard/admin/receivables' },
+    { id: 'admin-pools', label: 'Pool Management', icon: BarChart3, href: '/dashboard/admin/amc-pools' },
+    { id: 'admin-yield', label: 'Yield Distribution', icon: DollarSign, href: '/dashboard/admin/yield-distribution' },
+    // Removed: Asset Management (RWA - not needed for receivables)
   ];
 
   const dropdownSections = [
@@ -155,13 +185,9 @@ const DashboardNavigation: React.FC = () => {
         <div className="h-full flex flex-col w-full overflow-y-auto p-4">
           {/* Mobile Header */}
           <div className="flex items-center justify-between mb-6">
-            <Link to="/" onClick={toggleMobileSidebar} className="flex items-center space-x-3">
-              <img 
-                src="/images/tb4.png" 
-                alt="TrustBridge Africa" 
-                className="h-16 w-auto"
-              />
-            </Link>
+            <div onClick={toggleMobileSidebar} className="flex items-center">
+              <NovaxLogo size="md" showText={true} />
+            </div>
             <button
               onClick={toggleMobileSidebar}
               className="p-2 rounded-lg bg-gray-800 dark:bg-gray-800 light:bg-gray-100 text-gray-400 dark:text-gray-400 light:text-gray-600 hover:text-white dark:hover:text-white light:hover:text-black hover:bg-gray-700 dark:hover:bg-gray-700 light:hover:bg-gray-200 transition-colors"
@@ -326,15 +352,15 @@ const DashboardNavigation: React.FC = () => {
           </div>
 
           {/* Logo */}
-          <Link to="/" className="block mb-4">
+          <div className="block mb-4">
             <div className={`flex items-center transition-all duration-300 cursor-pointer group/logo ${isCollapsed ? 'justify-center group-hover:justify-start' : ''}`}>
-              <img 
-                src="/images/tb4.png" 
-                alt="TrustBridge Africa" 
-                className={`transition-all duration-300 ${isCollapsed ? 'w-10 h-10 group-hover:w-auto group-hover:h-16' : 'h-16 w-auto'}`}
-              />
+              {isCollapsed ? (
+                <NovaxLogo variant="icon" size="md" />
+              ) : (
+                <NovaxLogo size="md" showText={true} />
+              )}
             </div>
-          </Link>
+          </div>
 
           {/* Navigation Items */}
           <div className="flex flex-col gap-2 flex-1">
@@ -501,13 +527,13 @@ const DashboardNavigation: React.FC = () => {
                   <p className="text-xs font-semibold text-white dark:text-white light:text-black">
                     {address ? 'Connected' : 'Not connected'}
                   </p>
-                  {trustLoading ? (
+                  {nvxLoading ? (
                     <p className="text-xs text-gray-400 dark:text-gray-400 light:text-gray-600">
                       Loading...
                     </p>
                   ) : (
                     <p className="text-xs text-gray-400 dark:text-gray-400 light:text-gray-600">
-                      {trustBalance ? `${trustBalance} TRUST` : '0 TRUST'}
+                      {nvxBalance ? `${nvxBalance.toFixed(2)} NVX` : '0 NVX'}
                     </p>
                   )}
                 </div>

@@ -36,7 +36,6 @@ import { hederaTokenService } from '../services/hederaTokenService';
 import { contractService, AssetCategory, VerificationLevel, AssetData } from '../services/contractService';
 import { verificationService } from '../services/verificationService';
 import AutoFill from '../components/UI/AutoFill';
-import { AutoFillData } from '../services/autoFillService';
 
 // TypeScript declaration for window.ethereum
 declare global {
@@ -238,11 +237,14 @@ const AssetVerification: React.FC = () => {
     }));
   };
 
-  // Auto-fill handler
-  const handleAutoFill = (data: AutoFillData) => {
+  // Auto-fill handler removed - no mock data support
+  const handleAutoFill = (data: any) => {
+    // Mock data removed - this function is disabled
+    console.warn('Auto-fill disabled - mock data removed');
+    return;
     setFormData({
-      assetType: data.assetType,
-      assetName: data.assetName,
+      assetType: data?.assetType || '',
+      assetName: data?.assetName || '',
       description: data.description,
       category: AssetCategory.VEHICLES, // Default category
       verificationLevel: VerificationLevel.BASIC, // Default level

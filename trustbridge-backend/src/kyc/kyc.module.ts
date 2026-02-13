@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { KycController } from './kyc.controller';
 import { KycService } from './kyc.service';
+import { KybService } from './kyb.service';
 import { User, UserSchema } from '../schemas/user.schema';
 import { AuthModule } from '../auth/auth.module';
 
@@ -11,7 +12,7 @@ import { AuthModule } from '../auth/auth.module';
     AuthModule,
   ],
   controllers: [KycController],
-  providers: [KycService],
-  exports: [KycService],
+  providers: [KycService, KybService],
+  exports: [KycService, KybService],
 })
 export class KycModule {}

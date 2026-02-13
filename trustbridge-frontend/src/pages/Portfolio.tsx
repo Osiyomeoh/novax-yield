@@ -5,7 +5,6 @@ import Button from '../components/UI/Button';
 import { TrendingUp, TrendingDown, DollarSign, PieChart, BarChart3, Eye, ArrowUpRight, Loader2, AlertCircle, Coins, Wallet } from 'lucide-react';
 import { usePortfolio, useInvestments } from '../hooks/useApi';
 import { useWallet } from '../contexts/WalletContext';
-import { useTrustTokenBalance } from '../hooks/useTrustTokenBalance';
 import { Portfolio as PortfolioType, Investment } from '../types/api';
 
 const Portfolio: React.FC = () => {
@@ -17,7 +16,6 @@ const Portfolio: React.FC = () => {
   
   // Wallet and token balances
   const { balance: hbarBalance, address } = useWallet();
-  const { balance: trustBalance, loading: trustLoading } = useTrustTokenBalance();
 
   // Format portfolio stats from real data
   const portfolioStats = useMemo(() => {
@@ -202,22 +200,22 @@ const Portfolio: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* TRUST Token Balance */}
+        {/* USDC Balance */}
         <Card variant="floating" className="hover:scale-105 transition-transform">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
               <Coins className="w-8 h-8 text-primary-blue" />
-              {trustLoading ? (
+              {false ? (
                 <Loader2 className="w-5 h-5 text-primary-blue animate-spin" />
               ) : (
                 <div className="w-5 h-5 bg-primary-blue rounded-full"></div>
               )}
             </div>
             <h3 className="text-2xl font-bold text-primary-blue mb-1">
-              {trustLoading ? '...' : `${parseFloat(trustBalance).toFixed(2)}`}
+              0
             </h3>
-            <p className="text-sm text-off-white/70">TRUST Tokens</p>
-            <p className="text-xs text-primary-blue font-semibold">Protocol Token</p>
+            <p className="text-sm text-off-white/70">USDC</p>
+            <p className="text-xs text-primary-blue font-semibold">Stablecoin</p>
           </CardContent>
         </Card>
       </motion.div>

@@ -123,29 +123,11 @@ const RWAAssetManagement: React.FC = () => {
       console.log('🔍 Hedera client:', hederaClient);
       console.log('🔍 Signer:', signer);
       
-      // Fetch RWA assets directly from Mantle blockchain
-      console.log('🔗 Fetching RWA assets from Mantle blockchain for address:', accountId);
+      // Mantle service removed - using Etherlink/Novax contracts instead
+      console.log('🔗 Mantle service removed - use Novax contracts for Etherlink');
       
-      // Import mantleContractService
-      const { mantleContractService } = await import('../../services/mantleContractService');
-      
-      // Initialize with provider for read-only operations
-      if (hederaClient && signer) {
-        const { ethers } = await import('ethers');
-        const provider = new ethers.JsonRpcProvider(
-          import.meta.env.VITE_MANTLE_TESTNET_RPC_URL || 'https://rpc.sepolia.mantle.xyz'
-        );
-        mantleContractService.initialize(null as any, provider);
-      } else {
-        const { ethers } = await import('ethers');
-        const provider = new ethers.JsonRpcProvider(
-          import.meta.env.VITE_MANTLE_TESTNET_RPC_URL || 'https://rpc.sepolia.mantle.xyz'
-        );
-        mantleContractService.initialize(null as any, provider);
-      }
-      
-      // Fetch user's RWA assets from blockchain
-      const userRWAAssets = await mantleContractService.getUserAssets(accountId);
+      // TODO: Replace with Novax contract calls for Etherlink
+      const userRWAAssets: any[] = [];
       console.log('📊 User RWA assets from blockchain:', userRWAAssets.length);
       
       // Filter for RWA assets (those with maturityDate > 0)
@@ -312,7 +294,7 @@ const RWAAssetManagement: React.FC = () => {
             <h2 className="text-2xl font-bold text-gray-300 mb-2">No RWA Assets Found</h2>
             <p className="text-gray-400 mb-6">Start by creating your first Real World Asset</p>
             <Button
-              onClick={() => window.location.href = '/create-rwa'}
+              onClick={() => window.location.href = '/dashboard/create-receivable'}
               className="bg-primary-blue text-black hover:bg-primary-blue-light"
             >
               Create RWA Asset
@@ -342,7 +324,7 @@ const RWAAssetManagement: React.FC = () => {
               Refresh
             </Button>
             <Button
-              onClick={() => window.location.href = '/create-rwa'}
+              onClick={() => window.location.href = '/dashboard/create-receivable'}
               className="bg-primary-blue text-black hover:bg-primary-blue-light"
             >
               <Building2 className="w-4 h-4 mr-2" />
@@ -444,7 +426,7 @@ const RWAAssetManagement: React.FC = () => {
                 <h3 className="text-xl font-semibold text-gray-300 mb-2">No RWA Assets Found</h3>
                 <p className="text-gray-400 mb-6">Start by creating your first Real World Asset</p>
                 <Button
-                  onClick={() => window.location.href = '/create-rwa'}
+                  onClick={() => window.location.href = '/dashboard/create-receivable'}
                   className="bg-primary-blue text-black hover:bg-primary-blue-light"
                 >
                   Create RWA Asset

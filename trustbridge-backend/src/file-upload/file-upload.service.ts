@@ -1,6 +1,6 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { HederaService } from '../hedera/hedera.service';
+// import { HederaService } from '../hedera/hedera.service'; // Removed - use Novax contracts for Etherlink
 import { GoogleDriveService } from './google-drive.service';
 import { IPFSService } from '../ipfs/ipfs.service';
 import * as fs from 'fs';
@@ -43,7 +43,7 @@ export class FileUploadService {
 
   constructor(
     private configService: ConfigService,
-    private hederaService: HederaService,
+    // private hederaService: HederaService, // Removed - use Novax contracts for Etherlink
     private googleDriveService: GoogleDriveService,
     private ipfsService: IPFSService
   ) {
@@ -114,7 +114,10 @@ export class FileUploadService {
       // Also store file on Hedera File Service (HFS) as backup
       let hfsFileId: string | undefined;
       try {
-        hfsFileId = await this.hederaService.storeFileOnHFS(file.buffer, fileName);
+        // TODO: Replace with IPFS or Novax storage for Etherlink
+        // hfsFileId = await this.ipfsService.uploadFile(file.buffer, fileName);
+        throw new Error('HederaService removed - use IPFS or Novax storage for Etherlink');
+        // hfsFileId = ''; // Placeholder
         this.logger.log(`File stored on HFS with ID: ${hfsFileId}`);
       } catch (error) {
         this.logger.warn('Failed to store file on HFS:', error);

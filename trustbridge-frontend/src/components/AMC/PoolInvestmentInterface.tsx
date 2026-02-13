@@ -46,7 +46,7 @@ interface AMCPool {
 
 interface InvestmentForm {
   amount: number;
-  paymentMethod: 'HBAR' | 'TRUST' | 'USD';
+  paymentMethod: 'USDC' | 'USD';
 }
 
 interface PoolInvestmentInterfaceProps {
@@ -296,7 +296,7 @@ const PoolInvestmentInterface: React.FC<PoolInvestmentInterfaceProps> = ({
                     className="w-full bg-gray-600 border border-gray-500 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-primary-blue"
                   >
                     <option value="HBAR">HBAR</option>
-                    <option value="TRUST">TRUST Token</option>
+                    <option value="USDC">USDC</option>
                     <option value="USD">USD (Stripe)</option>
                   </select>
                 </div>

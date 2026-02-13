@@ -33,16 +33,14 @@ import ProfileSimple from './pages/ProfileSimple';
 import ProfileCompletionModal from './components/Auth/ProfileCompletionModal';
 import RWAAssetSubmission from './components/RWA/CreateRWAAsset';
 import RWATradingInterface from './components/Trading/RWATradingInterface';
+import { StakingVault } from './components/Staking/StakingVault';
 import SecondaryMarkets from './pages/SecondaryMarkets';
 import SPVManagement from './pages/SPVManagement';
 import DAOGovernance from './pages/DAOGovernance';
 import PoolDashboard from './components/Pools/PoolDashboard';
 import PoolDetailPage from './components/Pools/PoolDetailPage';
 import TradingInterface from './components/Trading/TradingInterface';
-import TrustTokenStaking from './components/Token/TrustTokenStaking';
 import GetTestTokens from './pages/GetTestTokens';
-import HederaWalletTest from './pages/HederaWalletTest';
-import HederaBasicTest from './pages/HederaBasicTest';
 import DiditCallback from './pages/DiditCallback';
 import Collections from './pages/Collections';
 import Activity from './pages/Activity';
@@ -52,6 +50,8 @@ import KYCCallback from './pages/KYCCallback';
 import AMCDashboard from './components/RWA/AMCDashboard';
 import RWAAssetManagement from './components/RWA/RWAAssetManagement';
 import AMCPoolManagement from './components/AMC/AMCPoolManagement';
+import CreateNovaxPool from './components/AMC/CreateNovaxPool';
+import NovaxYieldDistribution from './components/AMC/NovaxYieldDistribution';
 import PoolMarketplace from './components/AMC/PoolMarketplace';
 import PoolTradingInterface from './components/Trading/PoolTradingInterface';
 import PoolTradingDashboard from './components/Trading/PoolTradingDashboard';
@@ -64,6 +64,11 @@ import ProfessionalLicenseRequirements from './pages/help/ProfessionalLicenseReq
 import ResumeRequirements from './pages/help/ResumeRequirements';
 import Exchange from './pages/Exchange';
 import Documentation from './pages/Documentation';
+import CreateReceivable from './components/Receivables/CreateReceivable';
+import ReceivablesDashboard from './components/Receivables/ReceivablesDashboard';
+import AMCReceivablesDashboard from './components/Receivables/AMCReceivablesDashboard';
+import RecordPayment from './components/Receivables/RecordPayment';
+import AssetTypeSelector from './components/Assets/AssetTypeSelector';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -221,19 +226,6 @@ const App: React.FC = () => {
                   } />
                   
                   {/* Isolated Test Pages - No Wallet Context */}
-                  <Route path="/hedera-wallet-test" element={
-                    <div className="min-h-screen bg-gray-50 text-black">
-                      <UniversalHeader />
-                      <HederaWalletTest />
-                    </div>
-                  } />
-                  <Route path="/hedera-basic-test" element={
-                    <div className="min-h-screen bg-gray-50 text-black">
-                      <UniversalHeader />
-                      <HederaBasicTest />
-                    </div>
-                  } />
-                  
                   {/* KYC Callback - Public Access (No Auth Required) */}
                   <Route path="/kyc-callback" element={
                     <div className="min-h-screen bg-gray-50 text-black">
@@ -252,12 +244,20 @@ const App: React.FC = () => {
                         <Route path="/portfolio" element={<Portfolio />} />
                         <Route path="/analytics" element={<Analytics />} />
                         <Route path="/settings" element={<Settings />} />
-                        <Route path="/verify-asset" element={<AssetVerification />} />
-                        <Route path="/verification" element={<VerificationDashboard />} />
+                        {/* Removed RWA routes - not needed for Novax Yield (receivables flow) */}
+                        {/* <Route path="/verify-asset" element={<AssetVerification />} /> */}
+                        {/* <Route path="/verification" element={<VerificationDashboard />} /> */}
+                        {/* <Route path="/admin/assets" element={<AdminAssets />} /> */}
+                        {/* <Route path="/amc-dashboard" element={<AMCDashboard />} /> */}
+                        
+                        {/* Core Admin Routes for Novax Yield */}
                         <Route path="/admin" element={<AdminDashboard />} />
-                        <Route path="/admin/assets" element={<AdminAssets />} />
+                        <Route path="/admin/receivables" element={<AMCReceivablesDashboard />} />
                         <Route path="/admin/amc-pools" element={<AMCPoolManagement />} />
+                        <Route path="/admin/create-pool" element={<CreateNovaxPool />} />
+                        <Route path="/admin/pools/:poolId/payment" element={<RecordPayment />} />
                         <Route path="/admin/dividend-management" element={<DividendManagement />} />
+                        <Route path="/admin/yield-distribution" element={<NovaxYieldDistribution />} />
                         <Route path="/pools" element={<PoolMarketplace />} />
                         <Route path="/pool/:poolId" element={<PoolDetailPageWrapper />} />
                         <Route path="/pool-dashboard" element={<PoolDashboard />} />
@@ -265,13 +265,15 @@ const App: React.FC = () => {
                         <Route path="/pool-trading-dashboard" element={<PoolTradingDashboard />} />
                         <Route path="/pool-token-portfolio" element={<PoolTokenPortfolio />} />
                         <Route path="/trading" element={<TradingInterface />} />
-                        <Route path="/staking" element={<TrustTokenStaking />} />
                         <Route path="/exchange" element={<Exchange />} />
                         <Route path="/get-test-tokens" element={<GetTestTokens />} />
                         <Route path="/spv" element={<SPVManagement />} />
                         <Route path="/governance" element={<DAOGovernance />} />
                         <Route path="/profile" element={<Profile />} />
+                        <Route path="/create-asset" element={<AssetTypeSelector />} />
                         <Route path="/create-rwa-asset" element={<CreateRWAAsset />} />
+                        <Route path="/create-receivable" element={<CreateReceivable />} />
+                        <Route path="/receivables" element={<ReceivablesDashboard />} />
                         <Route path="/submit-rwa-asset" element={<RWAAssetSubmission />} />
                         <Route path="/ai-studio" element={<AIStudio />} />
                         <Route path="/rwa-trading" element={<RWATradingInterface />} />
@@ -281,6 +283,7 @@ const App: React.FC = () => {
                         <Route path="/asset-owner" element={<AssetOwnerDashboard />} />
                         <Route path="/asset/:assetId/trade" element={<AssetTradingInterface />} />
                         <Route path="/secondary-markets" element={<SecondaryMarkets />} />
+                        <Route path="/staking" element={<StakingVault />} />
                         </Routes>
                       </AuthGuard>
                     </DashboardLayout>

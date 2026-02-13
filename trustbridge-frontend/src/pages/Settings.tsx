@@ -5,7 +5,6 @@ import Button from '../components/UI/Button';
 import { User, Bell, Shield, Wallet, Globe, Moon, Sun, LogOut, Save, Key, Eye, EyeOff, Coins, Loader2 } from 'lucide-react';
 import { useWallet } from '../contexts/WalletContext';
 import { useAuth } from '../contexts/AuthContext';
-import { useTrustTokenBalance } from '../hooks/useTrustTokenBalance';
 import { useToast } from '../hooks/useToast';
 
 const Settings: React.FC = () => {
@@ -16,7 +15,6 @@ const Settings: React.FC = () => {
   // Wallet and token balances
   const { balance: hbarBalance, address, isConnected, disconnectWallet } = useWallet();
   const { logout, user, refreshUser, completeProfile } = useAuth();
-  const { balance: trustBalance, loading: trustLoading } = useTrustTokenBalance();
   const { toast } = useToast();
   
   // Profile form state
@@ -363,10 +361,10 @@ const Settings: React.FC = () => {
                       <div className="p-3 bg-dark-gray/50 rounded-lg">
                         <div className="flex items-center gap-2 mb-1">
                           <Coins className="w-4 h-4 text-primary-blue" />
-                          <span className="text-xs text-off-white/70">TRUST</span>
+                          <span className="text-xs text-off-white/70">USDC</span>
                         </div>
                         <p className="text-lg font-semibold text-primary-blue">
-                          {trustLoading ? '...' : `${parseFloat(trustBalance).toFixed(2)}`}
+                          0
                         </p>
                       </div>
                     </div>

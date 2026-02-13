@@ -4,8 +4,8 @@ import Button from '../components/UI/Button';
 import Input from '../components/UI/Input';
 import { useToast } from '../hooks/useToast';
 import { useWallet } from '../contexts/WalletContext';
-import { TrustTokenWalletService } from '../services/trust-token-wallet.service';
-import { TrustTokenService } from '../services/trust-token.service';
+import { novaxContractService } from '../services/novaxContractService';
+import { ethers } from 'ethers';
 import { 
   ArrowLeftRight, 
   ArrowDownUp,
@@ -19,100 +19,120 @@ import {
 } from 'lucide-react';
 
 const Exchange: React.FC = () => {
-  const { accountId, balance: hbarBalance, signer } = useWallet();
+  const { address, isConnected, provider } = useWallet();
   const { toast } = useToast();
   
-  const [trustBalance, setTrustBalance] = useState<number>(0);
-  const [hbarAmount, setHbarAmount] = useState<string>('');
-  const [trustAmount, setTrustAmount] = useState<number>(0);
+  const [nvxBalance, setNvxBalance] = useState<number>(0);
+  const [xtzBalance, setXtzBalance] = useState<string>('0');
+  const [xtzAmount, setXtzAmount] = useState<string>('');
+  const [nvxAmount, setNvxAmount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isExchanging, setIsExchanging] = useState(false);
-  const [exchangeDirection, setExchangeDirection] = useState<'HBAR_TO_TRUST' | 'TRUST_TO_HBAR'>('HBAR_TO_TRUST');
-  const [exchangeRate] = useState(100); // 1 HBAR = 100 TRUST tokens
-  const [exchangeFee] = useState(0.1); // 0.1 HBAR fee
+  const [exchangeDirection, setExchangeDirection] = useState<'XTZ_TO_NVX' | 'NVX_TO_XTZ'>('XTZ_TO_NVX');
+  const [exchangeRate] = useState(100); // 1 XTZ = 100 NVX tokens
+  const [exchangeFee] = useState(0.1); // 0.1 XTZ fee
   
   useEffect(() => {
-    if (accountId) {
-      fetchTrustBalance();
+    if (isConnected && address) {
+      fetchBalances();
     }
-  }, [accountId]);
+  }, [isConnected, address]);
 
-  const fetchTrustBalance = async () => {
+  const fetchBalances = async () => {
+    await Promise.all([fetchNVXBalance(), fetchXtzBalance()]);
+  };
+
+  const fetchNVXBalance = async () => {
     try {
       setIsLoading(true);
-      console.log('🔍 Fetching TRUST balance for account:', accountId);
-      const balance = await TrustTokenService.hybridGetTrustTokenBalance(accountId!);
-      console.log('📊 TRUST balance received:', balance);
-      setTrustBalance(balance);
+      if (!address) return;
+      console.log('🔍 Fetching NVX balance for address:', address);
+      const balanceBigInt = await novaxContractService.getNVXBalance(address);
+      const balanceNumber = Number(balanceBigInt) / 1e18; // NVX has 18 decimals
+      console.log('📊 NVX balance received:', balanceNumber);
+      setNvxBalance(balanceNumber);
     } catch (error) {
-      console.error('Failed to fetch TRUST balance:', error);
+      console.error('Failed to fetch NVX balance:', error);
+      setNvxBalance(0);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const calculateTrustAmount = (hbar: string) => {
-    const hbarNum = parseFloat(hbar) || 0;
-    if (hbarNum <= exchangeFee) return 0;
-    const trust = Math.floor((hbarNum - exchangeFee) * exchangeRate);
-    return Math.max(0, trust);
+  const fetchXtzBalance = async () => {
+    try {
+      if (!address || !provider) return;
+      const balance = await provider.getBalance(address);
+      const balanceInXtz = ethers.formatEther(balance);
+      setXtzBalance(balanceInXtz);
+    } catch (error) {
+      console.error('Failed to fetch XTZ balance:', error);
+      setXtzBalance('0');
+    }
   };
 
-  const calculateHbarAmount = (trust: string) => {
-    const trustNum = parseFloat(trust) || 0;
-    const hbar = (trustNum / exchangeRate) + exchangeFee;
-    return hbar;
+  const calculateNVXAmount = (xtz: string) => {
+    const xtzNum = parseFloat(xtz) || 0;
+    if (xtzNum <= exchangeFee) return 0;
+    const nvx = Math.floor((xtzNum - exchangeFee) * exchangeRate);
+    return Math.max(0, nvx);
+  };
+
+  const calculateXtzAmount = (nvx: string) => {
+    const nvxNum = parseFloat(nvx) || 0;
+    const xtz = (nvxNum / exchangeRate) + exchangeFee;
+    return xtz;
   };
 
   const handleAmountChange = (value: string) => {
-    if (exchangeDirection === 'HBAR_TO_TRUST') {
-      setHbarAmount(value);
-      setTrustAmount(calculateTrustAmount(value));
+    if (exchangeDirection === 'XTZ_TO_NVX') {
+      setXtzAmount(value);
+      setNvxAmount(calculateNVXAmount(value));
     } else {
-      setTrustAmount(parseFloat(value) || 0);
-      setHbarAmount(calculateHbarAmount(value).toFixed(6));
+      setNvxAmount(parseFloat(value) || 0);
+      setXtzAmount(calculateXtzAmount(value).toFixed(6));
     }
   };
 
   const handleSwap = () => {
-    setExchangeDirection(prev => prev === 'HBAR_TO_TRUST' ? 'TRUST_TO_HBAR' : 'HBAR_TO_TRUST');
-    setHbarAmount('');
-    setTrustAmount(0);
+    setExchangeDirection(prev => prev === 'XTZ_TO_NVX' ? 'NVX_TO_XTZ' : 'XTZ_TO_NVX');
+    setXtzAmount('');
+    setNvxAmount(0);
   };
 
   const handleExchange = async () => {
-    if (!accountId) {
+    if (!address) {
       toast({
         title: 'Wallet Not Connected',
-        description: 'Please connect your HashPack wallet to exchange tokens',
+        description: 'Please connect your wallet to exchange tokens',
         variant: 'destructive'
       });
       return;
     }
 
-    if (!signer) {
+    if (!provider) {
       toast({
-        title: 'Wallet Signer Not Available',
+        title: 'Provider Not Available',
         description: 'Please reconnect your wallet',
         variant: 'destructive'
       });
       return;
     }
 
-    if (exchangeDirection === 'HBAR_TO_TRUST') {
-      if (!hbarAmount || parseFloat(hbarAmount) <= 0) {
+    if (exchangeDirection === 'XTZ_TO_NVX') {
+      if (!xtzAmount || parseFloat(xtzAmount) <= 0) {
         toast({
           title: 'Invalid Amount',
-          description: 'Please enter a valid HBAR amount',
+          description: 'Please enter a valid XTZ amount',
           variant: 'destructive'
         });
         return;
       }
 
-      if (parseFloat(hbarAmount) > parseFloat(hbarBalance || '0')) {
+      if (parseFloat(xtzAmount) > parseFloat(xtzBalance || '0')) {
         toast({
           title: 'Insufficient Balance',
-          description: 'You do not have enough HBAR for this exchange',
+          description: 'You do not have enough XTZ for this exchange',
           variant: 'destructive'
         });
         return;
@@ -121,28 +141,20 @@ const Exchange: React.FC = () => {
       setIsExchanging(true);
 
       try {
-        console.log(`Exchanging ${hbarAmount} HBAR for ${trustAmount} TRUST tokens`);
+        console.log(`Exchanging ${xtzAmount} XTZ for ${nvxAmount} NVX tokens`);
         
-        const trustTokenWalletService = new TrustTokenWalletService();
-        const result = await trustTokenWalletService.exchangeHbarForTrust(
-          accountId,
-          parseFloat(hbarAmount),
-          '0.0.6916959', // Treasury account ID
-          '0.0.6916959', // Operations account ID
-          '0.0.6916959', // Staking account ID
-          signer
-        );
-        
+        // TODO: Implement XTZ to NVX exchange using novaxContractService
+        // This would require a swap contract or DEX integration
         toast({
-          title: 'Exchange Successful!',
-          description: `Successfully exchanged ${hbarAmount} HBAR for ${result.trustAmount} TRUST tokens`,
+          title: 'Coming Soon',
+          description: 'XTZ to NVX exchange will be available soon. Please use a DEX to swap XTZ for NVX.',
           variant: 'default'
         });
 
         // Refresh balances
-        await fetchTrustBalance();
-        setHbarAmount('');
-        setTrustAmount(0);
+        await fetchBalances();
+        setXtzAmount('');
+        setNvxAmount(0);
       } catch (error: any) {
         console.error('Exchange failed:', error);
         toast({
@@ -154,10 +166,10 @@ const Exchange: React.FC = () => {
         setIsExchanging(false);
       }
     } else {
-      // TRUST_TO_HBAR - Not implemented yet
+      // NVX_TO_XTZ - Not implemented yet
       toast({
         title: 'Coming Soon',
-        description: 'TRUST to HBAR exchange will be available soon',
+        description: 'NVX to XTZ exchange will be available soon',
         variant: 'default'
       });
     }
@@ -175,7 +187,7 @@ const Exchange: React.FC = () => {
             Token Exchange
           </h1>
           <p className="text-off-white/70 text-lg">
-            Exchange HBAR for TRUST tokens
+            Exchange XTZ for NVX tokens
           </p>
         </div>
 
@@ -189,10 +201,10 @@ const Exchange: React.FC = () => {
                   <div className="w-8 h-8 bg-primary-blue/20 rounded-full flex items-center justify-center">
                     <Coins className="w-4 h-4 text-primary-blue" />
                   </div>
-                  <span className="text-sm text-text-secondary">HBAR Balance</span>
+                  <span className="text-sm text-text-secondary">XTZ Balance</span>
                 </div>
                 <div className="text-2xl font-bold text-off-white">
-                  {parseFloat(hbarBalance || '0').toFixed(2)}
+                  {parseFloat(xtzBalance || '0').toFixed(4)}
                 </div>
               </div>
 
@@ -201,13 +213,13 @@ const Exchange: React.FC = () => {
                   <div className="w-8 h-8 bg-primary-blue-light/20 rounded-full flex items-center justify-center">
                     <TrendingUp className="w-4 h-4 text-primary-blue-light" />
                   </div>
-                  <span className="text-sm text-text-secondary">TRUST Balance</span>
+                  <span className="text-sm text-text-secondary">NVX Balance</span>
                 </div>
                 <div className="text-2xl font-bold text-off-white">
                   {isLoading ? (
                     <Loader2 className="w-6 h-6 animate-spin text-primary-blue" />
                   ) : (
-                    trustBalance.toLocaleString()
+                    nvxBalance.toLocaleString('en-US', { maximumFractionDigits: 2 })
                   )}
                 </div>
               </div>
@@ -219,18 +231,18 @@ const Exchange: React.FC = () => {
                 {/* From */}
                 <div className="relative">
                   <label className="block text-sm font-medium text-text-secondary mb-2">
-                    {exchangeDirection === 'HBAR_TO_TRUST' ? 'From (HBAR)' : 'From (TRUST)'}
+                    {exchangeDirection === 'XTZ_TO_NVX' ? 'From (XTZ)' : 'From (NVX)'}
                   </label>
                   <Input
                     type="number"
-                    value={exchangeDirection === 'HBAR_TO_TRUST' ? hbarAmount : trustAmount}
+                    value={exchangeDirection === 'XTZ_TO_NVX' ? xtzAmount : nvxAmount.toString()}
                     onChange={(e) => handleAmountChange(e.target.value)}
                     placeholder="0.00"
                     className="text-lg pr-12"
                     disabled={isExchanging}
                   />
                   <button
-                    onClick={fetchTrustBalance}
+                    onClick={fetchBalances}
                     className="absolute right-3 top-9 p-1 text-text-secondary hover:text-primary-blue transition-colors"
                     title="Refresh balance"
                   >
@@ -252,11 +264,11 @@ const Exchange: React.FC = () => {
                 {/* To */}
                 <div className="relative">
                   <label className="block text-sm font-medium text-text-secondary mb-2">
-                    {exchangeDirection === 'HBAR_TO_TRUST' ? 'To (TRUST)' : 'To (HBAR)'}
+                    {exchangeDirection === 'XTZ_TO_NVX' ? 'To (NVX)' : 'To (XTZ)'}
                   </label>
                   <Input
                     type="number"
-                    value={exchangeDirection === 'HBAR_TO_TRUST' ? trustAmount : hbarAmount}
+                    value={exchangeDirection === 'XTZ_TO_NVX' ? nvxAmount.toString() : xtzAmount}
                     readOnly
                     className="text-lg bg-midnight-900/50"
                   />
@@ -269,8 +281,8 @@ const Exchange: React.FC = () => {
                   <Info className="w-5 h-5 text-primary-blue mt-0.5 flex-shrink-0" />
                   <div className="text-sm text-text-secondary">
                     <p className="font-medium mb-1">Exchange Rate</p>
-                    <p className="text-off-white">1 HBAR = {exchangeRate} TRUST</p>
-                    <p className="mt-1">Fee: {exchangeFee} HBAR per transaction</p>
+                    <p className="text-off-white">1 XTZ = {exchangeRate} NVX</p>
+                    <p className="mt-1">Fee: {exchangeFee} XTZ per transaction</p>
                   </div>
                 </div>
               </div>
@@ -278,7 +290,7 @@ const Exchange: React.FC = () => {
               {/* Exchange Button */}
               <Button
                 onClick={handleExchange}
-                disabled={isExchanging || !accountId || (exchangeDirection === 'HBAR_TO_TRUST' && (!hbarAmount || parseFloat(hbarAmount) <= 0)) || (exchangeDirection === 'TRUST_TO_HBAR' && (!trustAmount || trustAmount <= 0))}
+                disabled={isExchanging || !address || (exchangeDirection === 'XTZ_TO_NVX' && (!xtzAmount || parseFloat(xtzAmount) <= 0)) || (exchangeDirection === 'NVX_TO_XTZ' && (!nvxAmount || nvxAmount <= 0))}
                 className="w-full mt-6"
                 variant="default"
               >
@@ -305,7 +317,7 @@ const Exchange: React.FC = () => {
             <div className="space-y-3 text-text-secondary">
               <p className="flex items-start gap-2">
                 <CheckCircle className="w-5 h-5 text-primary-blue mt-0.5 flex-shrink-0" />
-                <span>Exchange HBAR for TRUST tokens at a fixed rate of 1:100</span>
+                <span>Exchange XTZ for NVX tokens at a fixed rate of 1:100</span>
               </p>
               <p className="flex items-start gap-2">
                 <CheckCircle className="w-5 h-5 text-primary-blue mt-0.5 flex-shrink-0" />
@@ -313,7 +325,7 @@ const Exchange: React.FC = () => {
               </p>
               <p className="flex items-start gap-2">
                 <CheckCircle className="w-5 h-5 text-primary-blue mt-0.5 flex-shrink-0" />
-                <span>TRUST tokens are used for governance, staking, and platform fees</span>
+                <span>NVX tokens are used for governance, staking, and platform rewards</span>
               </p>
             </div>
           </CardContent>
@@ -324,4 +336,3 @@ const Exchange: React.FC = () => {
 };
 
 export default Exchange;
-

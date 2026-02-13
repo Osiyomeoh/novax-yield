@@ -49,48 +49,7 @@ export class YieldDistributionService {
   private yieldHistory: Map<string, YieldHistory> = new Map();
 
   constructor() {
-    // Initialize with sample data for demo
-    this.initializeSampleData();
-  }
-
-  private initializeSampleData() {
-    // Sample yield distribution for demo pools
-    const sampleDistribution: YieldDistribution = {
-      id: 'yield_001',
-      poolId: 'POOL_1761140698885_w7z1cmpv7',
-      amount: 5000, // $5000 in TRUST tokens
-      currency: 'TRUST',
-      distributionDate: new Date('2025-01-15'),
-      recordDate: new Date('2025-01-10'),
-      exDividendDate: new Date('2025-01-12'),
-      status: 'DISTRIBUTED',
-      totalHolders: 25,
-      totalTokens: 100000,
-      yieldRate: 12.5, // 12.5% APY
-      transactionId: '0.0.123456@1234567890'
-    };
-
-    this.yieldDistributions.set(sampleDistribution.poolId, [sampleDistribution]);
-    
-    // Sample user position
-    const samplePosition: UserYieldPosition = {
-      userId: '0.0.6923405',
-      poolId: 'POOL_1761140698885_w7z1cmpv7',
-      tokenBalance: 1000,
-      totalYieldEarned: 125, // $125 earned
-      lastYieldClaimed: new Date('2025-01-15'),
-      pendingYield: 15.5, // $15.5 pending
-      yieldHistory: [
-        {
-          distributionId: 'yield_001',
-          amount: 125,
-          date: new Date('2025-01-15'),
-          status: 'CLAIMED'
-        }
-      ]
-    };
-
-    this.userPositions.set(samplePosition.userId, [samplePosition]);
+    // No initialization needed - data will be fetched from contracts/backend
   }
 
   /**

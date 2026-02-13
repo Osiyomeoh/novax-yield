@@ -103,6 +103,45 @@ export class IPFSController {
     }
   }
 
+  @Post('upload-json')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Upload JSON data to IPFS' })
+  @ApiResponse({ status: 200, description: 'JSON uploaded successfully' })
+  @ApiResponse({ status: 400, description: 'Upload failed' })
+  async uploadJson(
+    @Body() body: { data: any; fileName?: string; metadata?: IPFSFileMetadata }
+  ) {
+    try {
+      if (!body.data) {
+        return {
+          success: false,
+          message: 'No JSON data provided'
+        };
+      }
+
+      const result = await this.ipfsService.uploadJson(
+        body.data,
+        body.fileName,
+        body.metadata
+      );
+
+      return {
+        success: true,
+        cid: result.cid,
+        data: result,
+        message: 'JSON uploaded successfully'
+      };
+    } catch (error) {
+      console.error('IPFS JSON upload error in controller:', error);
+      return {
+        success: false,
+        message: `Upload failed: ${error.message}`,
+        error: error.message
+      };
+    }
+  }
+
   @Post('pin')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

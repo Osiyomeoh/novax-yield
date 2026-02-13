@@ -20,8 +20,8 @@
     "close": "Close"
   },
   "header": {
-    "title": "TrustBridge",
-    "searchPlaceholder": "Search TrustBridge",
+    "title": "Novax Yield",
+    "searchPlaceholder": "Search Novax Yield",
     "connectWallet": "Connect Wallet",
     "disconnectWallet": "Disconnect Wallet",
     "completeProfile": "Complete Profile",
@@ -43,7 +43,7 @@
     "title": "Discovery Marketplace",
     "subtitle": "assets available for trading",
     "noAssets": "No assets found",
-    "noAssetsDescription": "No assets are currently available on the Mantle blockchain",
+    "noAssetsDescription": "No assets are currently available on the Etherlink blockchain",
     "allAssets": "All Assets",
     "realWorldAssets": "Real World Assets",
     "verifiedAssets": "Verified Assets",

@@ -122,67 +122,6 @@ const SecondaryMarkets: React.FC = () => {
     'Virtual Real Estate', 'Digital Music', 'Digital Books', 'Digital Games'
   ];
 
-  const mockMarkets: MarketData[] = [
-    {
-      id: '1',
-      name: 'Digital Sunset #001',
-      type: 'auction',
-      status: 'active',
-      asset: {
-        id: 'asset-1',
-        name: 'Digital Sunset #001',
-        imageURI: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43/400x300',
-        category: 'Digital Art',
-        attributes: [
-          { trait_type: 'Style', value: 'Abstract', rarity: 'common' },
-          { trait_type: 'Color', value: 'Sunset Orange', rarity: 'uncommon' }
-        ]
-      },
-      seller: '0x1234...5678',
-      currentPrice: '1.2',
-      startingPrice: '0.5',
-      reservePrice: '1.0',
-      buyNowPrice: '2.0',
-      highestBid: '1.2',
-      bidCount: 8,
-      endTime: Date.now() + (24 * 60 * 60 * 1000),
-      timeLeft: '23h 45m',
-      volume: '12.5',
-      floorPrice: '0.8',
-      priceChange: 0.2,
-      priceChangePercent: 20,
-      views: 1247,
-      likes: 89,
-      offers: []
-    },
-    {
-      id: '2',
-      name: 'Virtual Land Parcel',
-      type: 'fixed',
-      status: 'active',
-      asset: {
-        id: 'asset-2',
-        name: 'Virtual Land Parcel',
-        imageURI: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43/400x300',
-        category: 'Virtual Real Estate',
-        attributes: [
-          { trait_type: 'Size', value: '100x100', rarity: 'rare' },
-          { trait_type: 'Location', value: 'Prime District', rarity: 'epic' }
-        ]
-      },
-      seller: '0xabcd...efgh',
-      currentPrice: '5.0',
-      buyNowPrice: '5.0',
-      bidCount: 0,
-      volume: '25.0',
-      floorPrice: '4.5',
-      priceChange: 0.5,
-      priceChangePercent: 11.1,
-      views: 892,
-      likes: 45,
-      offers: []
-    }
-  ];
 
   useEffect(() => {
     loadMarkets();
@@ -191,9 +130,9 @@ const SecondaryMarkets: React.FC = () => {
   const loadMarkets = async () => {
     setLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setMarkets(mockMarkets);
+      // TODO: Fetch markets from contracts/backend
+      // For now, return empty array - data should come from actual sources
+      setMarkets([]);
     } catch (error) {
       console.error('Error loading markets:', error);
       toast({

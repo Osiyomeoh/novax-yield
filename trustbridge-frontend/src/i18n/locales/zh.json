@@ -20,8 +20,8 @@
     "close": "关闭"
   },
   "header": {
-    "title": "TrustBridge",
-    "searchPlaceholder": "搜索 TrustBridge",
+    "title": "Novax Yield",
+    "searchPlaceholder": "搜索 Novax Yield",
     "connectWallet": "连接钱包",
     "disconnectWallet": "断开钱包",
     "completeProfile": "完善资料",
@@ -43,7 +43,7 @@
     "title": "发现市场",
     "subtitle": "个资产可供交易",
     "noAssets": "未找到资产",
-    "noAssetsDescription": "Mantle 区块链上目前没有可用资产",
+    "noAssetsDescription": "Etherlink 区块链上目前没有可用资产",
     "allAssets": "所有资产",
     "realWorldAssets": "现实世界资产",
     "verifiedAssets": "已验证资产",

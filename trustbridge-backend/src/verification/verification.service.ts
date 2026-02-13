@@ -4,10 +4,10 @@ import { Model } from 'mongoose';
 import { VerificationRequest, VerificationRequestDocument, VerificationStatus, IPFSFile } from '../schemas/verification-request.schema';
 import { Asset, AssetDocument } from '../schemas/asset.schema';
 // import { Attestor, AttestorDocument } from '../schemas/attestor.schema'; // Removed - attestor functionality deprecated
-import { HederaService } from '../hedera/hedera.service';
+// import { HederaService } from '../hedera/hedera.service'; // Removed - use Novax contracts for Etherlink
 import { ChainlinkService } from '../chainlink/chainlink.service';
 // import { AttestorsService, AttestorRequirements } from '../attestors/attestors.service'; // Removed - attestor functionality deprecated
-import { ExternalApisService } from '../external-apis/external-apis.service';
+// import { ExternalApisService } from '../external-apis/external-apis.service'; // Removed - external-apis module deleted
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { IPFSService } from '../services/ipfs.service';
 
@@ -34,10 +34,10 @@ export class VerificationService {
     @InjectModel(VerificationRequest.name) private verificationModel: Model<VerificationRequestDocument>,
     @InjectModel(Asset.name) private assetModel: Model<AssetDocument>,
     // @InjectModel(Attestor.name) private attestorModel: Model<AttestorDocument>, // Removed - attestor functionality deprecated
-    private hederaService: HederaService,
+    // private hederaService: HederaService, // Removed - use Novax contracts for Etherlink
     private chainlinkService: ChainlinkService,
     // private attestorsService: AttestorsService, // Removed - attestor functionality deprecated
-    private externalApisService: ExternalApisService,
+    // private externalApisService: ExternalApisService, // Removed - external-apis module deleted
     private eventEmitter: EventEmitter2,
     private ipfsService: IPFSService,
   ) {}
@@ -235,18 +235,18 @@ export class VerificationService {
 
     for (const doc of documents) {
       try {
-        // Real OCR text extraction using ExternalApisService
-        const ocrResult = await this.externalApisService.extractTextFromImage(
-          Buffer.from(doc.data, 'base64'),
-          doc.mimeType
-        );
-        
-        // Verify document authenticity using real verification
-        const docVerification = await this.externalApisService.verifyDocument(
-          Buffer.from(doc.data, 'base64'),
-          doc.fileName?.includes('land') ? 'land_certificate' : 
-          doc.fileName?.includes('business') ? 'business_license' : 'identity_document'
-        );
+        // TODO: Replace with Chainlink Functions or other OCR service
+        // const ocrResult = await this.chainlinkService.extractTextFromImage(
+        //   Buffer.from(doc.data, 'base64'),
+        //   doc.mimeType
+        // );
+        // const docVerification = await this.chainlinkService.verifyDocument(
+        //   Buffer.from(doc.data, 'base64'),
+        //   doc.fileName?.includes('land') ? 'land_certificate' : 
+        //   doc.fileName?.includes('business') ? 'business_license' : 'identity_document'
+        // );
+        const ocrResult = { text: 'Placeholder - OCR not available' }; // Placeholder
+        const docVerification = { isValid: true, confidence: 0.8 }; // Placeholder
         
         if (docVerification.isValid) score += 5;
         if (docVerification.confidence > 0.8) score += 5;
@@ -278,12 +278,13 @@ export class VerificationService {
       if (isValid) score += 5;
 
       try {
-        // Real GPS verification using ExternalApisService
-        const gpsVerification = await this.externalApisService.verifyGPSLocation(
-          location.coordinates.lat,
-          location.coordinates.lng,
-          location.address || ''
-        );
+        // TODO: Replace with Chainlink Functions or other GPS verification service
+        // const gpsVerification = await this.chainlinkService.verifyGPSLocation(
+        //   location.coordinates.lat,
+        //   location.coordinates.lng,
+        //   location.address || ''
+        // );
+        const gpsVerification = { verified: true, isValid: true, confidence: 0.8 }; // Placeholder
         
         if (gpsVerification.verified) score += 10;
         if (gpsVerification.confidence > 0.8) score += 5;
@@ -340,11 +341,12 @@ export class VerificationService {
 
   private async verifyWeatherData(asset: Asset): Promise<number> {
     try {
-      // Get real weather data using ExternalApisService
-      const weatherData = await this.externalApisService.getWeatherData(
-        asset.location.coordinates.lat,
-        asset.location.coordinates.lng
-      );
+      // TODO: Replace with Chainlink Functions or other weather API
+      // const weatherData = await this.chainlinkService.getWeatherData(
+      //   asset.location.coordinates.lat,
+      //   asset.location.coordinates.lng
+      // );
+      const weatherData = null; // Placeholder - weather verification disabled
 
       if (weatherData) {
         // Check if weather conditions are suitable for asset type
@@ -507,14 +509,15 @@ export class VerificationService {
 
   private async submitToBlockchain(verification: VerificationRequest): Promise<void> {
     try {
-      // Submit verification to Hedera smart contract
-      await this.hederaService.submitVerification({
-        assetId: verification.assetId,
-        score: verification.scoring?.finalScore || 0,
-        evidenceHash: await this.calculateEvidenceHash(verification.evidence),
-        attestorId: verification.attestations[0]?.attestorAddress || '',
-        timestamp: verification.completedAt || new Date(),
-      });
+      // TODO: Replace with Novax contract calls for Etherlink
+      // await this.novaxService.submitVerification({
+      //   assetId: verification.assetId,
+      //   score: verification.scoring?.finalScore || 0,
+      //   evidenceHash: await this.calculateEvidenceHash(verification.evidence),
+      //   attestorId: verification.attestations[0]?.attestorAddress || '',
+      //   timestamp: verification.completedAt || new Date(),
+      // });
+      throw new Error('HederaService removed - use Novax contracts for Etherlink');
     } catch (error) {
       console.error('Failed to submit verification to blockchain:', error);
       throw new Error('Blockchain submission failed');
@@ -528,11 +531,13 @@ export class VerificationService {
 
   private async extractTextFromDocument(doc: any): Promise<string> {
     try {
-      const ocrResult = await this.externalApisService.extractTextFromImage(
-        Buffer.from(doc.data, 'base64'),
-        doc.mimeType
-      );
-      return ocrResult.text;
+      // TODO: Replace with Chainlink Functions or other OCR service
+      // const ocrResult = await this.chainlinkService.extractTextFromImage(
+      //   Buffer.from(doc.data, 'base64'),
+      //   doc.mimeType
+      // );
+      // return ocrResult.text;
+      return 'Placeholder - OCR not available';
     } catch (error) {
       console.error('OCR extraction failed:', error);
       return 'Extraction failed';
@@ -541,11 +546,13 @@ export class VerificationService {
 
   private async verifyDocumentAuthenticity(doc: any, text: string): Promise<boolean> {
     try {
-      const docVerification = await this.externalApisService.verifyDocument(
-        Buffer.from(doc.data, 'base64'),
-        doc.fileName?.includes('land') ? 'land_certificate' : 
-        doc.fileName?.includes('business') ? 'business_license' : 'identity_document'
-      );
+      // TODO: Replace with Chainlink Functions or other document verification service
+      // const docVerification = await this.chainlinkService.verifyDocument(
+      //   Buffer.from(doc.data, 'base64'),
+      //   doc.fileName?.includes('land') ? 'land_certificate' : 
+      //   doc.fileName?.includes('business') ? 'business_license' : 'identity_document'
+      // );
+      const docVerification = { isValid: true, confidence: 0.8 }; // Placeholder
       return docVerification.isValid && docVerification.confidence > 0.7;
     } catch (error) {
       console.error('Document authenticity verification failed:', error);

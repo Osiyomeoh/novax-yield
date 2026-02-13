@@ -7,7 +7,6 @@ import Button from '../UI/Button';
 import { useToast } from '../../hooks/useToast';
 import { useWallet } from '../../contexts/WalletContext';
 import { TransferTransaction, TokenId, AccountId, Hbar, TokenMintTransaction, TokenBurnTransaction, AccountBalanceQuery } from '@hashgraph/sdk';
-import { TrustTokenService } from '../../services/trust-token.service';
 import { marketplaceContractService } from '../../services/marketplace-contract.service';
 import { trackActivity } from '../../utils/activityTracker';
 import { apiService } from '../../services/api';
@@ -164,7 +163,7 @@ const MarketplaceAssetModal: React.FC<MarketplaceAssetModalProps> = ({
       if (!amount || amount < (asset.minimumInvestment || 100)) {
         toast({
           title: 'Invalid Investment Amount',
-          description: `Minimum investment is ${asset.minimumInvestment || 100} TRUST`,
+          description: `Minimum investment is ${asset.minimumInvestment || 100} USDC`,
           variant: 'destructive'
         });
         return;
@@ -194,32 +193,26 @@ const MarketplaceAssetModal: React.FC<MarketplaceAssetModalProps> = ({
         return;
       }
 
-      // Check user's TRUST token balance before investment
+      // Check user's USDC balance before investment (removed Trust Token check)
+      // TODO: Implement USDC balance check for Etherlink
       try {
-        console.log('🔧 Checking user TRUST token balance...');
-        const trustTokenId = TokenId.fromString('0.0.6935064'); // Use the same TRUST token ID as backend
-        const userAccountId = AccountId.fromString(accountId);
+        console.log('🔧 Checking user USDC balance...');
+        // Trust Token removed - using USDC on Etherlink
+        const trustBalanceAmount = 0; // Placeholder
         
-        const balanceQuery = new AccountBalanceQuery().setAccountId(userAccountId);
-        const balance = await balanceQuery.execute(hederaClient);
-        
-        // Find TRUST token balance
-        const trustBalance = balance.tokens?.get(trustTokenId);
-        const trustBalanceAmount = trustBalance ? Number(trustBalance) : 0; // TRUST token has 0 decimals, no conversion needed
-        
-        console.log('🔧 User TRUST balance:', trustBalanceAmount);
+        console.log('🔧 User USDC balance:', trustBalanceAmount);
         console.log('🔧 Investment amount requested:', amount);
         
         if (trustBalanceAmount < amount) {
           toast({
-            title: 'Insufficient TRUST Balance',
-            description: `You have ${trustBalanceAmount.toFixed(2)} TRUST but need ${amount} TRUST for this investment.`,
+            title: 'Insufficient USDC Balance',
+            description: `You have ${trustBalanceAmount.toFixed(2)} USDC but need ${amount} USDC for this investment.`,
             variant: 'destructive'
           });
           return;
         }
         
-        console.log('✅ Sufficient TRUST balance confirmed');
+        console.log('✅ Sufficient USDC balance confirmed');
       } catch (balanceError) {
         console.warn('⚠️ Could not check balance, proceeding with investment:', (balanceError as Error).message);
         // Continue with investment attempt even if balance check fails
@@ -227,31 +220,24 @@ const MarketplaceAssetModal: React.FC<MarketplaceAssetModalProps> = ({
 
       console.log('🚀 Starting pool investment process...');
       console.log('Pool ID:', asset.poolId);
-      console.log('Investment Amount:', amount, 'TRUST');
+      console.log('Investment Amount:', amount, 'USDC');
       console.log('User Account:', accountId);
 
-      // Step 1: Transfer TRUST tokens from user to pool
-      console.log('🔧 Creating TRUST token transfer transaction...');
+      // Step 1: Transfer USDC from user to pool (removed Trust Token logic)
+      console.log('🔧 Creating USDC transfer transaction...');
       
-      // TRUST token has 0 decimals, so no conversion needed
-      const tokenAmount = Math.floor(amount); // TRUST token has 0 decimals, use amount as-is
-      console.log('🔧 Investment amount (TRUST):', amount);
+      // USDC has 6 decimals
+      const tokenAmount = Math.floor(amount * 1000000); // Convert to USDC units (6 decimals)
+      console.log('🔧 Investment amount (USDC):', amount);
       console.log('🔧 Token amount (no conversion needed):', tokenAmount);
       console.log('🔧 Token amount check:', tokenAmount, 'should equal', amount);
       
-      // Create token IDs and account IDs first
-      const trustTokenId = TokenId.fromString('0.0.6935064'); // Use the same TRUST token ID as backend
-      const userAccountId = AccountId.fromString(accountId);
-      const treasuryAccountId = AccountId.fromString('0.0.6916959'); // Use the same treasury account ID as backend
+      // Trust Token removed - using USDC on Etherlink
+      // TODO: Implement USDC transfer for Etherlink using novaxContractService
+      console.log('🔧 USDC transfer for Etherlink (Trust Token removed)');
       
-      console.log('🔧 Token ID:', trustTokenId.toString());
-      console.log('🔧 User Account ID:', userAccountId.toString());
-      console.log('🔧 Treasury Account ID:', treasuryAccountId.toString());
-      
-      // Create transaction step by step
-      let transferTx = new TransferTransaction();
-      transferTx = transferTx.addTokenTransfer(trustTokenId, userAccountId, -tokenAmount);
-      transferTx = transferTx.addTokenTransfer(trustTokenId, treasuryAccountId, tokenAmount);
+      // Placeholder - Hedera-specific code removed
+      let transferTx = null as any;
       transferTx = transferTx.setTransactionMemo(`Pool Investment: ${asset.poolId}`);
       transferTx = transferTx.setMaxTransactionFee(new Hbar(5));
       transferTx = transferTx.setTransactionValidDuration(120);
@@ -263,8 +249,8 @@ const MarketplaceAssetModal: React.FC<MarketplaceAssetModalProps> = ({
         console.log('🔧 Final balance check before transaction execution...');
         const finalBalanceQuery = new AccountBalanceQuery().setAccountId(userAccountId);
         const finalBalance = await finalBalanceQuery.execute(hederaClient);
-        const finalTrustBalance = finalBalance.tokens?.get(trustTokenId);
-        const finalTrustBalanceAmount = finalTrustBalance ? Number(finalTrustBalance) : 0; // TRUST token has 0 decimals, no conversion needed
+        // Trust Token removed - using USDC on Etherlink
+        const finalTrustBalanceAmount = 0; // Placeholder
         
         console.log('🔧 Final TRUST balance before transaction:', finalTrustBalanceAmount);
         console.log('🔧 Required amount for transaction:', amount);
@@ -446,7 +432,7 @@ const MarketplaceAssetModal: React.FC<MarketplaceAssetModalProps> = ({
       
       toast({
         title: 'Investment Successful!',
-        description: `Invested ${amount} TRUST and received ${poolTokenAmount.toFixed(2)} pool tokens. Transaction: ${transactionId}`,
+        description: `Invested ${amount} USDC and received ${poolTokenAmount.toFixed(2)} pool tokens. Transaction: ${transactionId}`,
         variant: 'default'
       });
       
@@ -512,30 +498,23 @@ const MarketplaceAssetModal: React.FC<MarketplaceAssetModalProps> = ({
       console.log('Redeem Amount:', amount, 'pool tokens');
       console.log('User Account:', accountId);
 
-      // Step 1: Calculate TRUST tokens to return
-      const trustAmount = amount * (asset.price || 1);
-      console.log('🔧 TRUST tokens to return:', trustAmount);
+      // Step 1: Calculate USDC to return
+      const usdcAmount = amount * (asset.price || 1);
+      console.log('🔧 USDC to return:', usdcAmount);
 
-      // Step 2: Transfer TRUST tokens from treasury to user
-      console.log('🔧 Creating TRUST token transfer transaction...');
+      // Step 2: Transfer USDC from treasury to user (removed Trust Token logic)
+      console.log('🔧 Creating USDC transfer transaction...');
       
-      // TRUST token has 0 decimals, so no conversion needed
-      const tokenAmount = Math.floor(trustAmount); // TRUST token has 0 decimals, use amount as-is
+      // USDC has 6 decimals
+      const tokenAmount = Math.floor(usdcAmount * 1000000); // Convert to USDC units (6 decimals)
       console.log('🔧 Token amount (no conversion needed):', tokenAmount);
       
-      // Create token IDs and account IDs first
-      const trustTokenId = TokenId.fromString('0.0.6935064'); // Use the same TRUST token ID as backend
-      const userAccountId = AccountId.fromString(accountId);
-      const treasuryAccountId = AccountId.fromString('0.0.6916959'); // Use the same treasury account ID as backend
+      // Trust Token removed - using USDC on Etherlink
+      // TODO: Implement USDC transfer for Etherlink using novaxContractService
+      console.log('🔧 USDC transfer for Etherlink (Trust Token removed)');
       
-      console.log('🔧 Token ID:', trustTokenId.toString());
-      console.log('🔧 User Account ID:', userAccountId.toString());
-      console.log('🔧 Treasury Account ID:', treasuryAccountId.toString());
-      
-      // Create transaction step by step
-      let transferTx = new TransferTransaction();
-      transferTx = transferTx.addTokenTransfer(trustTokenId, treasuryAccountId, -tokenAmount);
-      transferTx = transferTx.addTokenTransfer(trustTokenId, userAccountId, tokenAmount);
+      // Placeholder - Hedera-specific code removed
+      let transferTx = null as any;
       transferTx = transferTx.setTransactionMemo(`Pool Redemption: ${asset.poolId}`);
       transferTx = transferTx.setMaxTransactionFee(new Hbar(5));
       transferTx = transferTx.setTransactionValidDuration(120);
@@ -628,7 +607,7 @@ const MarketplaceAssetModal: React.FC<MarketplaceAssetModalProps> = ({
       
       toast({
         title: 'Redemption Successful!',
-        description: `Redeemed ${amount} pool tokens and received ${trustAmount.toFixed(2)} TRUST`,
+        description: `Redeemed ${amount} pool tokens and received ${usdcAmount.toFixed(2)} USDC`,
         variant: 'default'
       });
       
@@ -669,8 +648,9 @@ const MarketplaceAssetModal: React.FC<MarketplaceAssetModalProps> = ({
       const assetPrice = parseFloat(asset.price || asset.totalValue || '100');
       const listingId = marketplaceListingStatus.listingId;
       
-      // Check buyer's TRUST balance
-      const buyerBalance = await TrustTokenService.hybridGetTrustTokenBalance(accountId);
+      // Check buyer's USDC balance (removed Trust Token check)
+      // TODO: Implement USDC balance check for Etherlink
+      const buyerBalance = 0;
       
       console.log('🔍 Balance check:', {
         buyerBalance: buyerBalance,
@@ -679,7 +659,7 @@ const MarketplaceAssetModal: React.FC<MarketplaceAssetModalProps> = ({
       });
       
       if (buyerBalance < assetPrice) {
-        throw new Error(`Insufficient TRUST tokens. You need ${assetPrice} TRUST but only have ${buyerBalance} TRUST.`);
+        throw new Error(`Insufficient USDC. You need ${assetPrice} USDC but only have ${buyerBalance} USDC.`);
       }
 
       console.log('💰 Buying asset:', {
@@ -702,15 +682,13 @@ const MarketplaceAssetModal: React.FC<MarketplaceAssetModalProps> = ({
       const royaltyPercentage = parseFloat(asset.royaltyPercentage || asset.metadata?.royaltyPercentage || '0');
       const totalPrice = typeof assetPrice === 'string' ? parseFloat(assetPrice) : assetPrice;
       
-      const marketplaceAccount = '0.0.6916959';
-      const trustTokenId = '0.0.6935064';
-      
-      // Step 1: Transfer TRUST tokens
-      console.log('💸 Step 1/3: Transferring TRUST tokens...');
+      // Trust Token removed - using USDC on Etherlink
+      // TODO: Implement USDC transfer for Etherlink using novaxContractService
+      console.log('💸 Step 1/3: Transferring USDC (Trust Token removed)...');
       
       const { Hbar } = await import('@hashgraph/sdk');
       
-      // Create TRUST token transfers with royalty distribution
+      // Create USDC transfers with royalty distribution (Hedera-specific code removed)
       // Use toFixed(8) to ensure exactly 8 decimal places
       const exactPlatformFee = Number.parseFloat(((totalPrice * platformFeePercent) / 100).toFixed(8));
       const exactRoyaltyAmount = Number.parseFloat(((totalPrice * royaltyPercentage) / 100).toFixed(8));
@@ -742,26 +720,19 @@ const MarketplaceAssetModal: React.FC<MarketplaceAssetModalProps> = ({
         }
       });
       
-      // Use separate transfers to avoid zero-sum validation
-      // Transfer 1: From buyer to seller (base payment + royalty)
-      const sellerTransferTx = new TransferTransaction()
-        .addTokenTransfer(trustTokenId, accountId, -(exactSellerAmount + exactRoyaltyAmount)) // From buyer
-        .addTokenTransfer(trustTokenId, asset.owner, exactSellerAmount + exactRoyaltyAmount) // To seller
-        .setMaxTransactionFee(new Hbar(2));
-
-      // Transfer 2: From buyer to platform
-      const platformTransferTx = new TransferTransaction()
-        .addTokenTransfer(trustTokenId, accountId, -exactPlatformFee) // From buyer
-        .addTokenTransfer(trustTokenId, marketplaceAccount, exactPlatformFee) // To platform
-        .setMaxTransactionFee(new Hbar(2));
+      // Trust Token removed - using USDC on Etherlink
+      // TODO: Implement USDC transfers for Etherlink using novaxContractService
+      // Placeholder - Hedera-specific code removed
+      const sellerTransferTx = null as any;
+      const platformTransferTx = null as any;
 
       if (exactRoyaltyAmount > 0) {
         const totalSellerAmount = exactSellerAmount + exactRoyaltyAmount;
-        console.log(`👑 Seller receives ${exactSellerAmount.toFixed(8)} TRUST base + ${exactRoyaltyAmount.toFixed(8)} TRUST royalty = ${totalSellerAmount.toFixed(8)} TRUST total`);
+        console.log(`👑 Seller receives ${exactSellerAmount.toFixed(8)} USDC base + ${exactRoyaltyAmount.toFixed(8)} USDC royalty = ${totalSellerAmount.toFixed(8)} USDC total`);
         sellerTransferTx.setTransactionMemo(`Buy: ${asset.name} | Seller: ${exactSellerAmount.toFixed(8)} + Royalty: ${exactRoyaltyAmount.toFixed(8)}`);
         platformTransferTx.setTransactionMemo(`Buy: ${asset.name} | Platform: ${exactPlatformFee.toFixed(8)}`);
       } else {
-        console.log(`💵 Seller receives ${exactSellerAmount.toFixed(8)} TRUST (no royalty)`);
+        console.log(`💵 Seller receives ${exactSellerAmount.toFixed(8)} USDC (no royalty)`);
         sellerTransferTx.setTransactionMemo(`Buy: ${asset.name} | Seller: ${exactSellerAmount.toFixed(8)}`);
         platformTransferTx.setTransactionMemo(`Buy: ${asset.name} | Platform: ${exactPlatformFee.toFixed(8)}`);
       }
@@ -777,7 +748,7 @@ const MarketplaceAssetModal: React.FC<MarketplaceAssetModalProps> = ({
       const signedPlatformTx = await signer.signTransaction(platformTransferTx);
       const platformTxResponse = await signedPlatformTx.execute(hederaClient);
       await platformTxResponse.getReceipt(hederaClient);
-      console.log('✅ TRUST paid:', sellerTxResponse.transactionId.toString(), platformTxResponse.transactionId.toString());
+      console.log('✅ USDC paid:', sellerTxResponse.transactionId.toString(), platformTxResponse.transactionId.toString());
       
       // Step 2: Associate token
       console.log('🔗 Step 2/3: Associating NFT token...');
@@ -827,12 +798,12 @@ const MarketplaceAssetModal: React.FC<MarketplaceAssetModalProps> = ({
       // Show royalty information in console
       if (exactRoyaltyAmount > 0) {
         const totalSellerAmount = exactSellerAmount + exactRoyaltyAmount;
-        console.log(`👑 Royalty included: ${exactRoyaltyAmount.toFixed(2)} TRUST in seller payment`);
-        console.log(`💵 Seller received: ${exactSellerAmount.toFixed(2)} TRUST base + ${exactRoyaltyAmount.toFixed(2)} TRUST royalty = ${totalSellerAmount.toFixed(2)} TRUST total`);
+        console.log(`👑 Royalty included: ${exactRoyaltyAmount.toFixed(2)} USDC in seller payment`);
+        console.log(`💵 Seller received: ${exactSellerAmount.toFixed(2)} USDC base + ${exactRoyaltyAmount.toFixed(2)} USDC royalty = ${totalSellerAmount.toFixed(2)} USDC total`);
       } else {
-        console.log(`💵 Seller received: ${exactSellerAmount.toFixed(2)} TRUST`);
+        console.log(`💵 Seller received: ${exactSellerAmount.toFixed(2)} USDC`);
       }
-      console.log(`💰 Platform fee: ${exactPlatformFee.toFixed(2)} TRUST`);
+      console.log(`💰 Platform fee: ${exactPlatformFee.toFixed(2)} USDC`);
 
       // Track activity
       trackActivity({
@@ -867,8 +838,8 @@ const MarketplaceAssetModal: React.FC<MarketplaceAssetModalProps> = ({
       toast({
         title: 'Purchase Successful! 🎉',
         description: exactRoyaltyAmount > 0 
-          ? `You've successfully purchased ${asset.name}! ${royaltyPercentage}% royalty (${exactRoyaltyAmount.toFixed(2)} TRUST) was sent to the creator.`
-          : `You've successfully purchased ${asset.name} for ${assetPrice} TRUST tokens!`,
+          ? `You've successfully purchased ${asset.name}! ${royaltyPercentage}% royalty (${exactRoyaltyAmount.toFixed(2)} USDC) was sent to the creator.`
+          : `You've successfully purchased ${asset.name} for ${assetPrice} USDC!`,
         variant: 'default'
       });
 
@@ -929,7 +900,7 @@ const MarketplaceAssetModal: React.FC<MarketplaceAssetModalProps> = ({
 
       toast({
         title: 'Offer Submitted!',
-        description: `Your offer of ${price} TRUST for ${asset.name} has been sent to the seller.`,
+        description: `Your offer of ${price} USDC for ${asset.name} has been sent to the seller.`,
         variant: 'default'
       });
 
@@ -1060,7 +1031,7 @@ const MarketplaceAssetModal: React.FC<MarketplaceAssetModalProps> = ({
                       <div className="text-center">
                         <p className="text-text-secondary text-sm">Token Price</p>
                         <p className="text-xl font-bold text-primary-blue">
-                          {asset.price || '1.00'} TRUST
+                          {asset.price || '1.00'} USDC
                         </p>
                       </div>
                       <div className="text-center">
@@ -1186,7 +1157,7 @@ const MarketplaceAssetModal: React.FC<MarketplaceAssetModalProps> = ({
                             </div>
                             <div className="flex justify-between">
                               <span className="text-gray-400">Min Investment:</span>
-                              <span className="text-white">{asset.minimumInvestment || '100'} TRUST</span>
+                              <span className="text-white">{asset.minimumInvestment || '100'} USDC</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-gray-400">Investors:</span>
@@ -1228,7 +1199,7 @@ const MarketplaceAssetModal: React.FC<MarketplaceAssetModalProps> = ({
                       <div className="space-y-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-300 mb-2">
-                            Investment Amount (TRUST)
+                            Investment Amount (USDC)
                           </label>
                           <input
                             type="number"
@@ -1278,7 +1249,7 @@ const MarketplaceAssetModal: React.FC<MarketplaceAssetModalProps> = ({
                           <div className="flex justify-between text-sm mb-2">
                             <span className="text-gray-400">You will receive:</span>
                             <span className="text-white">
-                              {redeemAmount ? (parseFloat(redeemAmount) * (asset.price || 1)).toFixed(2) : '0.00'} TRUST
+                              {redeemAmount ? (parseFloat(redeemAmount) * (asset.price || 1)).toFixed(2) : '0.00'} USDC
                             </span>
                           </div>
                           <div className="flex justify-between text-sm">
@@ -1346,7 +1317,7 @@ const MarketplaceAssetModal: React.FC<MarketplaceAssetModalProps> = ({
                 <div className="bg-gradient-to-br from-primary-blue/10 to-primary-blue-light/10 rounded-xl p-4 border border-primary-blue/30">
                   <p className="text-sm text-gray-400 mb-1">Price</p>
                   <p className="text-3xl font-bold text-primary-blue">
-                    {asset.price || asset.totalValue || '100'} TRUST
+                    {asset.price || asset.totalValue || '100'} USDC
                   </p>
                 </div>
 
@@ -1418,7 +1389,7 @@ const MarketplaceAssetModal: React.FC<MarketplaceAssetModalProps> = ({
                         ) : (
                           <>
                             <TrendingUp className="w-4 h-4 mr-2" />
-                            Buy Now for {asset.price || asset.totalValue || '100'} TRUST
+                            Buy Now for {asset.price || asset.totalValue || '100'} USDC
                           </>
                         )}
                       </Button>
@@ -1478,7 +1449,7 @@ const MarketplaceAssetModal: React.FC<MarketplaceAssetModalProps> = ({
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-400 mb-2">
-                        Offer Price (TRUST)
+                        Offer Price (USDC)
                       </label>
                       <input
                         type="number"

@@ -43,57 +43,7 @@ export class RiskAssessmentService {
   private poolProfiles: Map<string, PoolRiskProfile> = new Map();
 
   constructor() {
-    // Initialize with sample data
-    this.initializeSampleData();
-  }
-
-  private initializeSampleData() {
-    // Sample risk assessment
-    const sampleAssessment: RiskAssessment = {
-      poolId: 'POOL_1761140698885_w7z1cmpv7',
-      overallRiskScore: 35, // Low-Medium risk
-      riskLevel: 'MEDIUM',
-      riskFactors: {
-        liquidityRisk: 40,
-        marketRisk: 30,
-        creditRisk: 25,
-        operationalRisk: 35,
-        regulatoryRisk: 45,
-        concentrationRisk: 20
-      },
-      riskWarnings: [
-        'Medium liquidity risk due to limited secondary market',
-        'Regulatory changes in target jurisdiction may affect returns',
-        'Concentration in single asset type increases risk'
-      ],
-      riskMitigations: [
-        'Diversified asset portfolio reduces concentration risk',
-        'Professional asset management team with proven track record',
-        'Regular monitoring and reporting mechanisms in place',
-        'Insurance coverage for asset protection'
-      ],
-      lastAssessmentDate: new Date(),
-      assessmentVersion: '1.0'
-    };
-
-    this.riskAssessments.set(sampleAssessment.poolId, sampleAssessment);
-
-    // Sample pool profile
-    const sampleProfile: PoolRiskProfile = {
-      poolId: 'POOL_1761140698885_w7z1cmpv7',
-      assetType: 'REAL_ESTATE',
-      geographicRegion: 'AFRICA',
-      sector: 'COMMERCIAL',
-      maturityDate: new Date('2026-12-31'),
-      minimumInvestment: 100,
-      expectedAPY: 12.5,
-      totalValue: 500000,
-      diversificationScore: 75,
-      liquidityScore: 60,
-      transparencyScore: 85
-    };
-
-    this.poolProfiles.set(sampleProfile.poolId, sampleProfile);
+    // No initialization needed - data will be fetched from contracts/backend
   }
 
   /**

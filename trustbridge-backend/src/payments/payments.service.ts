@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ConfigService } from '@nestjs/config';
 import { Payment, PaymentDocument, PaymentStatus, PaymentMethod, PaymentType } from '../schemas/payment.schema';
-import { MantleService } from '../mantle/mantle.service';
+// MantleService removed - using Etherlink/Novax contracts directly
 import { NotificationsService } from '../notifications/notifications.service';
 import { ethers } from 'ethers';
 import Stripe from 'stripe';
@@ -54,7 +54,7 @@ export class PaymentsService {
   constructor(
     @InjectModel(Payment.name) private paymentModel: Model<PaymentDocument>,
     private configService: ConfigService,
-    private mantleService: MantleService,
+    // MantleService removed - using Etherlink/Novax contracts directly
     private notificationsService: NotificationsService,
   ) {
     // Initialize Stripe
@@ -141,13 +141,11 @@ export class PaymentsService {
       const amountWei = ethers.parseEther(payment.amount.toString());
 
       // Transfer TRUST tokens from user to platform treasury
+      // TODO: Replace with Novax/Etherlink token transfer
       // Note: User must have approved the transfer or this will fail
       // In production, this should be done via a payment contract that handles approvals
-      const transferResult = await this.mantleService.transferTrustTokens(
-        payment.userId.toLowerCase(), // from (user address)
-        platformTreasury.toLowerCase(), // to (platform treasury)
-        amountWei
-      );
+      throw new Error('Mantle service removed - use Novax contracts for Etherlink');
+      const transferResult = { txHash: '' } as any; // Placeholder
 
       this.logger.log(`TRUST token payment processed: ${payment.paymentId} - TX: ${transferResult.txHash}`);
 
@@ -297,13 +295,18 @@ export class PaymentsService {
 
       // Transfer TRUST tokens from buyer to platform (escrow)
       const escrowAmountWei = ethers.parseEther(escrowRequest.amount.toString());
-      const escrowResult = await this.mantleService.transferTrustTokens(
-        escrowRequest.buyerId.toLowerCase(),
-        platformTreasury.toLowerCase(),
-        escrowAmountWei
-      );
+      // TODO: Replace with Novax/Etherlink token transfer
+      // When Novax integration is complete, uncomment and update the following code:
+      // const escrowResult = await this.novaxService.transferTrustTokens(
+      //   escrowRequest.buyerId.toLowerCase(),
+      //   platformTreasury.toLowerCase(),
+      //   escrowAmountWei
+      // );
+      // const escrowTxId = escrowResult.txHash;
       
-      const escrowTxId = escrowResult.txHash;
+      // For now, use placeholder until Novax contracts are integrated
+      throw new Error('Mantle service removed - use Novax contracts for Etherlink');
+      const escrowTxId = ''; // Placeholder
 
       escrowPayment.status = PaymentStatus.COMPLETED;
       escrowPayment.blockchainTxId = escrowTxId;
@@ -345,24 +348,40 @@ export class PaymentsService {
 
       if (buyerConfirmation) {
         // Release funds to seller (transfer from platform to seller)
-        const releaseResult = await this.mantleService.transferTrustTokens(
-          platformTreasury.toLowerCase(),
-          sellerAddress.toLowerCase(),
-          escrowAmountWei
-        );
+        // TODO: Replace with Novax/Etherlink token transfer
+        // When Novax integration is complete, uncomment and update the following code:
+        // const releaseResult = await this.novaxService.transferTrustTokens(
+        //   platformTreasury.toLowerCase(),
+        //   sellerAddress.toLowerCase(),
+        //   escrowAmountWei
+        // );
+        // payment.status = PaymentStatus.COMPLETED;
+        // payment.completedAt = new Date();
+        // payment.blockchainTxId = releaseResult.txHash;
+        
+        // For now, use placeholder until Novax contracts are integrated
+        throw new Error('Mantle service removed - use Novax contracts for Etherlink');
         payment.status = PaymentStatus.COMPLETED;
         payment.completedAt = new Date();
-        payment.blockchainTxId = releaseResult.txHash;
+        payment.blockchainTxId = ''; // Placeholder
       } else {
         // Refund to buyer (transfer from platform back to buyer)
-        const refundResult = await this.mantleService.transferTrustTokens(
-          platformTreasury.toLowerCase(),
-          buyerAddress.toLowerCase(),
-          escrowAmountWei
-        );
+        // TODO: Replace with Novax/Etherlink token transfer
+        // When Novax integration is complete, uncomment and update the following code:
+        // const refundResult = await this.novaxService.transferTrustTokens(
+        //   platformTreasury.toLowerCase(),
+        //   buyerAddress.toLowerCase(),
+        //   escrowAmountWei
+        // );
+        // payment.status = PaymentStatus.REFUNDED;
+        // payment.refundedAt = new Date();
+        // payment.blockchainTxId = refundResult.txHash;
+        
+        // For now, use placeholder until Novax contracts are integrated
+        throw new Error('Mantle service removed - use Novax contracts for Etherlink');
         payment.status = PaymentStatus.REFUNDED;
         payment.refundedAt = new Date();
-        payment.blockchainTxId = refundResult.txHash;
+        payment.blockchainTxId = ''; // Placeholder
       }
 
       await payment.save();
@@ -476,12 +495,18 @@ export class PaymentsService {
 
           // Refund TRUST tokens from platform treasury to user
           const refundAmountWei = ethers.parseEther(payment.amount.toString());
-          const refundResult = await this.mantleService.transferTrustTokens(
-            platformTreasury.toLowerCase(), // from platform
-            payment.userId.toLowerCase(), // to user
-            refundAmountWei
-          );
-          refundTxId = refundResult.txHash;
+          // TODO: Replace with Novax/Etherlink token transfer
+          // When Novax integration is complete, uncomment and update the following code:
+          // const refundResult = await this.novaxService.transferTrustTokens(
+          //   platformTreasury.toLowerCase(), // from platform
+          //   payment.userId.toLowerCase(), // to user
+          //   refundAmountWei
+          // );
+          // refundTxId = refundResult.txHash;
+          
+          // For now, use placeholder until Novax contracts are integrated
+          throw new Error('Mantle service removed - use Novax contracts for Etherlink');
+          refundTxId = ''; // Placeholder
           break;
         case PaymentMethod.STRIPE:
           if (this.stripe) {

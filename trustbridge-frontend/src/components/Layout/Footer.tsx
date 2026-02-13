@@ -11,12 +11,12 @@ const Footer: React.FC = () => {
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center space-x-2 mb-4">
               <div className="w-8 h-8 bg-gradient-to-br from-primary-blue to-primary-blue-light rounded-lg flex items-center justify-center">
-                <span className="text-black font-bold text-sm">TB</span>
+                <span className="text-black font-bold text-sm">NY</span>
               </div>
-              <span className="text-xl font-bold text-white">TrustBridge</span>
+              <span className="text-xl font-bold text-white">Novax Yield</span>
             </div>
             <p className="text-gray-400 mb-4 max-w-md">
-              Universal asset tokenization platform powered by Mantle Network and IPFS. 
+              Real-world asset tokenization platform powered by Etherlink Network and IPFS. 
               Tokenize any asset, trade everything.
             </p>
             <div className="flex space-x-4">
@@ -93,7 +93,7 @@ const Footer: React.FC = () => {
         {/* Bottom */}
         <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
           <div className="flex items-center space-x-1 text-gray-400 mb-4 md:mb-0">
-            <span>© 2026 TrustBridge. Made with</span>
+            <span>© 2026 Novax Yield. Made with</span>
             <Heart className="w-4 h-4 text-red-500" />
             <span>for the future of asset tokenization.</span>
           </div>

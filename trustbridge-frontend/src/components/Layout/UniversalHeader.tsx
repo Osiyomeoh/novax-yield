@@ -11,10 +11,11 @@ import { useProfileCompletion } from '../../contexts/ProfileCompletionContext';
 import { useSidebar } from '../../contexts/SidebarContext';
 import { useAdmin } from '../../contexts/AdminContext';
 import { useToast } from '../../hooks/useToast';
-import TrustTokenBalance from '../TrustToken/TrustTokenBalance';
 import { LanguageSwitcher } from '../UI/LanguageSwitcher';
 import { getUseTranslation } from '../../utils/i18n-helpers';
 import { Crown } from 'lucide-react';
+import NVXTokenBalance from '../NVX/NVXTokenBalance';
+import NovaxLogo from '../UI/NovaxLogo';
 
 interface UniversalHeaderProps {
   searchQuery?: string;
@@ -165,14 +166,8 @@ const UniversalHeader: React.FC<UniversalHeaderProps> = ({
                 <Menu className="w-5 h-5 text-gray-700" />
               </button>
             )}
-            {/* Logo - TrustBridge Theme */}
-            <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity cursor-pointer">
-              <img 
-                src="/images/tb4.png" 
-                alt="TrustBridge Africa Logo" 
-                className="h-16 sm:h-20 w-auto"
-              />
-            </Link>
+            {/* Logo - Novax Yield */}
+            <NovaxLogo size="lg" showText={true} />
           </div>
 
           {/* Search Bar - Only show on Discovery page */}
@@ -194,10 +189,10 @@ const UniversalHeader: React.FC<UniversalHeaderProps> = ({
           {/* Right Side - Universal Wallet Connection */}
           <div className="flex items-center space-x-2 sm:space-x-4">
             <LanguageSwitcher className="hidden sm:block" />
-            {/* TRUST Token Balance */}
+            {/* NVX Token Balance */}
             {isConnected && (
               <div className="hidden sm:flex relative z-10">
-                <TrustTokenBalance 
+                <NVXTokenBalance 
                   className=""
                   showPurchaseButton={true}
                 />

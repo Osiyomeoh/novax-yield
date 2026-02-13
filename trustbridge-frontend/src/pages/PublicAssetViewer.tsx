@@ -22,7 +22,8 @@ import {
   Globe,
   Link as LinkIcon
 } from 'lucide-react';
-import hederaAssetService from '../services/hederaAssetService';
+// Hedera asset service removed - using Etherlink/Novax contracts instead
+// import hederaAssetService from '../services/hederaAssetService';
 import { useToast } from '../hooks/useToast';
 
 interface PublicAssetData {
@@ -110,7 +111,10 @@ const PublicAssetViewer: React.FC = () => {
       // If not in localStorage, try Hedera network
       console.log('📡 Fetching from Hedera network...');
       try {
-        const hederaAsset = await hederaAssetService.getAssetDataDirectly(id);
+        // Hedera asset service removed - using Etherlink/Novax contracts instead
+        // TODO: Replace with Novax contract calls for Etherlink
+        // const hederaAsset = await hederaAssetService.getAssetDataDirectly(id);
+        const hederaAsset = null;
         
         if (hederaAsset) {
           console.log('✅ Found asset on Hedera:', hederaAsset);
@@ -511,7 +515,7 @@ const PublicAssetViewer: React.FC = () => {
                     <p className="text-lg text-off-white/70 capitalize mb-4 break-words">{asset.assetType}</p>
                     <div className="flex flex-wrap items-center gap-4 mb-4">
                       <span className="text-3xl font-bold text-primary-blue">
-                        {asset.totalValue || asset.price || asset.valueInHbar || '100'} TRUST
+                        {asset.totalValue || asset.price || asset.valueInHbar || '100'} USDC
                       </span>
                       {statusInfo && (
                         <span className={`px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1 border ${statusInfo.color} flex-shrink-0`}>

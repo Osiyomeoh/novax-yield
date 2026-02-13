@@ -426,6 +426,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return;
     }
 
+    // IMPORTANT: DO NOT switch networks during authentication
+    // Network switching should ONLY happen when making transactions (write operations)
+    // Calling window.ethereum.request() here triggers MetaMask prompts on every refresh
+    // 
+    // For embedded wallets (Privy): They use Privy's RPC, no network switching needed
+    // For external wallets (MetaMask): Network will be switched automatically when needed (in novaxContractService)
+    //
+    // REMOVED: Network switching code that was causing MetaMask prompts on every refresh
+    console.log('⏭️ AuthContext - Skipping network check during authentication (will switch when needed for transactions)');
+
     console.log('AuthContext - Authenticating with backend using Privy wallet...');
     setIsLoading(true);
     setError(null);

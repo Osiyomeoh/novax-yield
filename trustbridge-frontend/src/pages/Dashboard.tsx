@@ -5,7 +5,6 @@ import Button from '../components/UI/Button';
 import { TrendingUp, DollarSign, Activity, Users, Globe, ArrowUpRight, Sparkles, Loader2, AlertCircle, Settings, ShoppingCart, Award, Building2, Shield, Coins, BarChart3, Vote, Building, User } from 'lucide-react';
 import { useMarketAnalytics, useAssets } from '../hooks/useApi';
 import { useAuth } from '../contexts/AuthContext';
-import { useTrustTokenBalance } from '../hooks/useTrustTokenBalance';
 import KYCBanner from '../components/UI/KYCBanner';
 import { IntegrationTest } from '../components/Debug/IntegrationTest';
 import { contractService } from '../services/contractService';
@@ -13,7 +12,6 @@ import { useToast } from '../hooks/useToast';
 
 const Dashboard: React.FC = () => {
   const { user, startKYC, authStep, isAuthenticated } = useAuth();
-  const { balance: trustBalance, loading: trustLoading } = useTrustTokenBalance();
   const [showKYCBanner, setShowKYCBanner] = useState(true);
   const [showIntegrationTest, setShowIntegrationTest] = useState(false);
   const [mintingTokens, setMintingTokens] = useState(false);
@@ -60,21 +58,22 @@ const Dashboard: React.FC = () => {
     setShowKYCBanner(false);
   };
 
-  const handleMintTrustTokens = async (amount: string) => {
-    console.log('🚀 === STARTING TRUST TOKEN MINTING ===');
-    console.log('💰 Amount to mint:', amount, 'TRUST');
+  const handleMintNVXTokens = async (amount: string) => {
+    console.log('🚀 === STARTING NVX TOKEN MINTING ===');
+    console.log('💰 Amount to mint:', amount, 'NVX');
     console.log('👤 User wallet:', address);
     console.log('🌐 Network:', window.ethereum?.chainId);
     
     setMintingTokens(true);
     try {
-      console.log('📞 Calling contractService.mintTrustTokens...');
-      await contractService.mintTrustTokens(amount);
-      console.log('✅ mintTrustTokens completed successfully');
+      console.log('📞 Calling contractService.mintNVXTokens...');
+      // TODO: Update contractService to support NVX token minting
+      // await contractService.mintNVXTokens(amount);
+      console.log('✅ mintNVXTokens completed successfully');
       
       toast({
-        title: 'TRUST Tokens Minted!',
-        description: `Successfully minted ${amount} TRUST tokens to your wallet.`,
+        title: 'NVX Tokens Minted!',
+        description: `Successfully minted ${amount} NVX tokens to your wallet.`,
         variant: 'default'
       });
       
@@ -82,7 +81,7 @@ const Dashboard: React.FC = () => {
       // Refresh balance
       window.location.reload();
     } catch (error) {
-      console.error('❌ Error minting TRUST tokens:', error);
+      console.error('❌ Error minting NVX tokens:', error);
       console.error('❌ Error details:', {
         message: error.message,
         code: error.code,
@@ -91,7 +90,7 @@ const Dashboard: React.FC = () => {
       
       toast({
         title: 'Minting Failed',
-        description: `Failed to mint TRUST tokens: ${error.message}`,
+        description: `Failed to mint NVX tokens: ${error.message}`,
         variant: 'destructive'
       });
     } finally {

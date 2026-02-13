@@ -26,7 +26,7 @@ import { useToast } from '../../hooks/useToast';
 import AssetApproval from '../AMC/AssetApproval';
 import PoolManagement from '../AMC/PoolManagement';
 import { useWallet } from '../../contexts/WalletContext';
-import { mantleContractService } from '../../services/mantleContractService';
+// Mantle service removed - using Etherlink/Novax contracts instead
 import { getContractAddress } from '../../config/contracts';
 import { ethers } from 'ethers';
 
@@ -87,17 +87,8 @@ const AMCDashboard: React.FC = () => {
   useEffect(() => {
     const initContractService = async () => {
       try {
-        if (provider) {
-          // Use provider for read-only operations, signer for transactions
-          const currentSigner = signer || (provider && 'getSigner' in provider ? await provider.getSigner() : null);
-          mantleContractService.initialize(currentSigner || null as any, provider);
-        } else {
-          // Create read-only provider if wallet not connected
-          const rpcUrl = import.meta.env.VITE_MANTLE_TESTNET_RPC_URL || 'https://rpc.sepolia.mantle.xyz';
-          const { ethers } = await import('ethers');
-          const readOnlyProvider = new ethers.JsonRpcProvider(rpcUrl);
-          mantleContractService.initialize(null as any, readOnlyProvider);
-        }
+        // Mantle service removed - using Etherlink/Novax contracts instead
+        // TODO: Initialize Novax contract service for Etherlink
       } catch (error) {
         console.error('Failed to initialize contract service:', error);
       }
@@ -113,8 +104,9 @@ const AMCDashboard: React.FC = () => {
   // Fetch pool count for navigation badge
   const fetchPoolCount = async () => {
     try {
-      // Fetch pools directly from blockchain contract only
-      const blockchainPools = await mantleContractService.getAllPoolsFromBlockchain();
+      // Mantle service removed - using Etherlink/Novax contracts instead
+      // TODO: Replace with Novax contract calls for Etherlink
+      const blockchainPools: any[] = [];
       const activePools = blockchainPools.filter((pool: any) => pool.isActive !== false);
       setPoolCount(activePools.length);
     } catch (error) {
@@ -144,17 +136,10 @@ const AMCDashboard: React.FC = () => {
   const fetchAMCAssets = async () => {
     try {
       setIsLoading(true);
-      console.log('📡 Fetching AMC assets from Mantle blockchain...');
+      console.log('📡 Mantle service removed - use Novax contracts for Etherlink');
 
-      // Ensure contract service is initialized
-      if (!provider) {
-        const rpcUrl = import.meta.env.VITE_MANTLE_TESTNET_RPC_URL || 'https://rpc.sepolia.mantle.xyz';
-        const readOnlyProvider = new ethers.JsonRpcProvider(rpcUrl);
-        mantleContractService.initialize(null as any, readOnlyProvider);
-      }
-
-      // Fetch all RWA assets from blockchain
-      const blockchainAssets = await mantleContractService.getAllRWAAssets();
+      // TODO: Replace with Novax contract calls for Etherlink
+      const blockchainAssets: any[] = [];
       console.log(`✅ Fetched ${blockchainAssets.length} assets from blockchain`);
 
       // Transform blockchain assets to AMCAsset format
@@ -165,7 +150,8 @@ const AMCDashboard: React.FC = () => {
             let inspectionRecord = null;
             let legalTransferRecord = null;
             try {
-              const inspectionRecordData = await mantleContractService.getInspectionRecord(asset.assetId || asset.id);
+              // TODO: Replace with Novax contract calls
+              const inspectionRecordData = null as any;
               // Check if inspection record exists - look for scheduledAt, completedAt, or inspector address
               const scheduledAt = inspectionRecordData?.scheduledAt 
                 ? (typeof inspectionRecordData.scheduledAt === 'bigint' ? Number(inspectionRecordData.scheduledAt) : Number(inspectionRecordData.scheduledAt || 0))
@@ -194,7 +180,8 @@ const AMCDashboard: React.FC = () => {
               console.log(`ℹ️ No inspection record found for asset ${asset.assetId || asset.id}:`, e.message);
             }
             try {
-              const legalTransferRecordData = await mantleContractService.getLegalTransferRecord(asset.assetId || asset.id);
+              // TODO: Replace with Novax contract calls
+              const legalTransferRecordData = null as any;
               if (legalTransferRecordData && legalTransferRecordData.assetId && legalTransferRecordData.assetId !== '0x0000000000000000000000000000000000000000000000000000000000000000') {
                 legalTransferRecord = legalTransferRecordData;
               }
@@ -407,7 +394,7 @@ const AMCDashboard: React.FC = () => {
 
       // Initialize contract service with signer
       if (provider && signer) {
-        mantleContractService.initialize(signer, provider);
+        // Mantle service removed - using Etherlink/Novax contracts instead
       } else {
         throw new Error('No signer or provider available');
       }
@@ -428,13 +415,15 @@ const AMCDashboard: React.FC = () => {
 
       console.log('✅ Approving asset on blockchain:', { assetId: assetIdBytes32, verificationLevel });
 
-      const txHash = await mantleContractService.verifyAsset(assetIdBytes32, verificationLevel);
+      // TODO: Replace with Novax contract calls for Etherlink
+      throw new Error('Mantle service removed - use Novax contracts for Etherlink');
+      const txHash = '' as any;
 
       console.log('✅ Asset approved on blockchain:', txHash);
 
       toast({
         title: 'Asset Approved!',
-        description: `Asset verified on Mantle blockchain. Transaction: ${txHash.slice(0, 10)}...`,
+        description: `Asset verified on Etherlink blockchain. Transaction: ${txHash.slice(0, 10)}...`,
         variant: 'default'
       });
 
@@ -511,7 +500,7 @@ const AMCDashboard: React.FC = () => {
 
       // Initialize contract service with signer
       if (provider && signer) {
-        mantleContractService.initialize(signer, provider);
+        // Mantle service removed - using Etherlink/Novax contracts instead
       } else {
         throw new Error('No signer or provider available');
       }
@@ -538,11 +527,15 @@ const AMCDashboard: React.FC = () => {
       });
 
       // Schedule on blockchain
-      const txHash = await mantleContractService.scheduleInspection(
-        assetIdBytes32,
-        inspector,
-        scheduledAt
-      );
+      // TODO: Replace with Novax contract calls for Etherlink
+      // Mantle service removed - using Etherlink/Novax contracts instead
+      throw new Error('Mantle service removed - use Novax contracts for Etherlink');
+      // const txHash = await mantleContractService.scheduleInspection(
+      //   assetIdBytes32,
+      //   inspector,
+      //   scheduledAt
+      // );
+      const txHash = '' as any;
 
       console.log('✅ Inspection scheduled on blockchain, waiting for confirmation:', txHash);
 
@@ -630,14 +623,15 @@ const AMCDashboard: React.FC = () => {
 
       // Initialize contract service with signer
       if (provider && signer) {
-        mantleContractService.initialize(signer, provider);
+        // Mantle service removed - using Etherlink/Novax contracts instead
       } else {
         throw new Error('No signer or provider available');
       }
 
       // Check inspection record status first
       try {
-        const inspectionRecord = await mantleContractService.getInspectionRecord(assetId);
+        // TODO: Replace with Novax contract calls
+        const inspectionRecord = null as any;
         const inspectionRecordAssetId = inspectionRecord?.assetId;
         const hasInspectionRecord = inspectionRecordAssetId && inspectionRecordAssetId !== '0x0000000000000000000000000000000000000000000000000000000000000000';
         
@@ -673,7 +667,9 @@ const AMCDashboard: React.FC = () => {
             }
             
             console.log(`⏰ Auto-scheduling inspection for asset ${assetId} with inspector ${address} (immediate)`);
-            const scheduleTxHash = await mantleContractService.scheduleInspection(assetId, address, 0);
+            // TODO: Replace with Novax contract calls
+            throw new Error('Mantle service removed - use Novax contracts for Etherlink');
+            const scheduleTxHash = '' as any;
             console.log('✅ Inspection scheduled automatically, transaction:', scheduleTxHash);
             
             // Wait for transaction confirmation
@@ -706,12 +702,16 @@ const AMCDashboard: React.FC = () => {
 
       console.log('✅ Completing inspection on blockchain:', { assetId, inspectionStatus, comments });
 
-      const txHash = await mantleContractService.completeInspection(
-        assetId,
-        inspectionStatus,
-        comments,
-        inspectionReportHash
-      );
+      // TODO: Replace with Novax contract calls for Etherlink
+      // Mantle service removed - using Etherlink/Novax contracts instead
+      throw new Error('Mantle service removed - use Novax contracts for Etherlink');
+      // const txHash = await mantleContractService.completeInspection(
+      //   assetId,
+      //   inspectionStatus,
+      //   comments,
+      //   inspectionReportHash
+      // );
+      const txHash = '' as any;
 
       console.log('✅ Inspection completed on blockchain, waiting for confirmation:', txHash);
 
@@ -737,7 +737,7 @@ const AMCDashboard: React.FC = () => {
 
       toast({
         title: 'Inspection Completed!',
-        description: `Physical inspection completed on Mantle blockchain. Asset ready for legal transfer. Transaction: ${txHash.slice(0, 10)}...`,
+        description: `Physical inspection completed on Etherlink blockchain. Asset ready for legal transfer. Transaction: ${txHash.slice(0, 10)}...`,
         variant: 'default',
         duration: 8000
       });
@@ -794,7 +794,7 @@ const AMCDashboard: React.FC = () => {
 
       // Initialize contract service with signer
       if (provider && signer) {
-        mantleContractService.initialize(signer, provider);
+        // Mantle service removed - using Etherlink/Novax contracts instead
       } else {
         throw new Error('No signer or provider available');
       }
@@ -809,7 +809,8 @@ const AMCDashboard: React.FC = () => {
       // Contract requires status to be: PENDING_VERIFICATION (0), VERIFIED_PENDING_AMC (1), or AMC_INSPECTION_COMPLETED (3)
       let contractAssetData = null;
       try {
-        contractAssetData = await mantleContractService.getAsset(assetId);
+        // TODO: Replace with Novax contract calls
+        contractAssetData = null as any;
         const contractStatus = typeof contractAssetData.status === 'bigint' 
           ? Number(contractAssetData.status) 
           : (typeof contractAssetData.status === 'string' ? parseInt(contractAssetData.status) : Number(contractAssetData.status || 0));
@@ -846,13 +847,17 @@ const AMCDashboard: React.FC = () => {
         if (contractAssetData) {
           ownerAddress = contractAssetData.currentOwner || contractAssetData.originalOwner || contractAssetData.owner;
         } else {
-          try {
-            const assetData = await mantleContractService.getAsset(assetId);
-            ownerAddress = assetData.currentOwner || assetData.originalOwner || assetData.owner;
-          } catch (e) {
-            console.error('Could not fetch asset owner from blockchain:', e);
-            throw new Error('Could not determine asset owner. Please try again.');
-          }
+          // Mantle contract service removed - using Etherlink/Novax contracts instead
+          // TODO: Replace with Novax contract calls for Etherlink
+          console.warn('⚠️ Mantle service removed - cannot fetch asset owner from blockchain');
+          throw new Error('Mantle service removed - use Novax contracts for Etherlink');
+          // try {
+          //   const assetData = await mantleContractService.getAsset(assetId);
+          //   ownerAddress = assetData.currentOwner || assetData.originalOwner || assetData.owner;
+          // } catch (e) {
+          //   console.error('Could not fetch asset owner from blockchain:', e);
+          //   throw new Error('Could not determine asset owner. Please try again.');
+          // }
         }
       }
 
@@ -875,11 +880,15 @@ const AMCDashboard: React.FC = () => {
         legalDocumentHash
       });
 
-      const txHash = await mantleContractService.initiateLegalTransfer(
-        assetIdBytes32,
-        ownerAddress,
-        legalDocumentHash
-      );
+      // TODO: Replace with Novax contract calls for Etherlink
+      // Mantle service removed - using Etherlink/Novax contracts instead
+      throw new Error('Mantle service removed - use Novax contracts for Etherlink');
+      // const txHash = await mantleContractService.initiateLegalTransfer(
+      //   assetIdBytes32,
+      //   ownerAddress,
+      //   legalDocumentHash
+      // );
+      const txHash = '' as any;
       
       console.log('✅ Legal transfer initiated successfully, transaction:', txHash);
 
@@ -896,7 +905,7 @@ const AMCDashboard: React.FC = () => {
 
       toast({
         title: 'Legal Transfer Initiated!',
-        description: `Legal transfer initiated on Mantle blockchain. Transaction: ${txHash.slice(0, 10)}...`,
+        description: `Legal transfer initiated on Etherlink blockchain. Transaction: ${txHash.slice(0, 10)}...`,
         variant: 'default',
         duration: 8000
       });
@@ -950,20 +959,22 @@ const AMCDashboard: React.FC = () => {
 
       // Initialize contract service with signer
       if (provider && signer) {
-        mantleContractService.initialize(signer, provider);
+        // Mantle service removed - using Etherlink/Novax contracts instead
       } else {
         throw new Error('No signer or provider available');
       }
 
       console.log('✅ Completing legal transfer on blockchain:', assetId);
 
-      const txHash = await mantleContractService.completeLegalTransfer(assetId);
+      // TODO: Replace with Novax contract calls for Etherlink
+      throw new Error('Mantle service removed - use Novax contracts for Etherlink');
+      const txHash = '' as any;
 
       console.log('✅ Legal transfer completed on blockchain:', txHash);
 
       toast({
         title: 'Legal Transfer Completed!',
-        description: `Legal transfer completed on Mantle blockchain. Transaction: ${txHash.slice(0, 10)}...`,
+        description: `Legal transfer completed on Etherlink blockchain. Transaction: ${txHash.slice(0, 10)}...`,
         variant: 'default'
       });
 
@@ -999,17 +1010,21 @@ const AMCDashboard: React.FC = () => {
 
       // Initialize contract service with signer
       if (provider && signer) {
-        mantleContractService.initialize(signer, provider);
+        // Mantle service removed - using Etherlink/Novax contracts instead
       } else {
         throw new Error('No signer or provider available');
       }
 
       // Check contract status and legal transfer record before activating
+      // Mantle contract service removed - using Etherlink/Novax contracts instead
+      // TODO: Replace with Novax contract calls for Etherlink
       try {
-        const contractAssetData = await mantleContractService.getAsset(assetId);
-        const contractStatus = typeof contractAssetData.status === 'bigint' 
-          ? Number(contractAssetData.status) 
-          : (typeof contractAssetData.status === 'string' ? parseInt(contractAssetData.status) : Number(contractAssetData.status || 0));
+        // const contractAssetData = await mantleContractService.getAsset(assetId);
+        // const contractStatus = typeof contractAssetData.status === 'bigint' 
+        //   ? Number(contractAssetData.status) 
+        //   : (typeof contractAssetData.status === 'string' ? parseInt(contractAssetData.status) : Number(contractAssetData.status || 0));
+        const contractAssetData = null as any;
+        const contractStatus = 0; // Default status since contract service removed
         
         console.log(`🔍 Contract asset status: ${contractStatus} (expected 5=LEGAL_TRANSFER_COMPLETED)`);
         
@@ -1022,7 +1037,8 @@ const AMCDashboard: React.FC = () => {
         }
 
         // Check legal transfer record status
-        const legalTransferRecord = await mantleContractService.getLegalTransferRecord(assetId);
+        // TODO: Replace with Novax contract calls
+        const legalTransferRecord = null as any;
         if (legalTransferRecord && legalTransferRecord.assetId && legalTransferRecord.assetId !== '0x0000000000000000000000000000000000000000000000000000000000000000') {
           const transferStatus = typeof legalTransferRecord.status === 'bigint' 
             ? Number(legalTransferRecord.status) 
@@ -1046,13 +1062,15 @@ const AMCDashboard: React.FC = () => {
 
       console.log('✅ Activating asset on blockchain:', assetId);
 
-      const txHash = await mantleContractService.activateAsset(assetId);
+      // TODO: Replace with Novax contract calls for Etherlink
+      throw new Error('Mantle service removed - use Novax contracts for Etherlink');
+      const txHash = '' as any;
 
       console.log('✅ Asset activated on blockchain:', txHash);
 
       toast({
         title: 'Asset Activated!',
-        description: `Asset activated on Mantle blockchain. Transaction: ${txHash.slice(0, 10)}...`,
+        description: `Asset activated on Etherlink blockchain. Transaction: ${txHash.slice(0, 10)}...`,
         variant: 'default'
       });
 

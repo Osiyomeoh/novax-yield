@@ -20,8 +20,8 @@
     "close": "बंद करें"
   },
   "header": {
-    "title": "TrustBridge",
-    "searchPlaceholder": "TrustBridge खोजें",
+    "title": "Novax Yield",
+    "searchPlaceholder": "Novax Yield खोजें",
     "connectWallet": "वॉलेट कनेक्ट करें",
     "disconnectWallet": "वॉलेट डिस्कनेक्ट करें",
     "completeProfile": "प्रोफ़ाइल पूरी करें",
@@ -43,7 +43,7 @@
     "title": "डिस्कवरी मार्केटप्लेस",
     "subtitle": "संपत्तियां ट्रेडिंग के लिए उपलब्ध",
     "noAssets": "कोई संपत्ति नहीं मिली",
-    "noAssetsDescription": "Mantle ब्लॉकचेन पर वर्तमान में कोई संपत्ति उपलब्ध नहीं है",
+    "noAssetsDescription": "Etherlink ब्लॉकचेन पर वर्तमान में कोई संपत्ति उपलब्ध नहीं है",
     "allAssets": "सभी संपत्तियां",
     "realWorldAssets": "वास्तविक दुनिया की संपत्तियां",
     "verifiedAssets": "सत्यापित संपत्तियां",

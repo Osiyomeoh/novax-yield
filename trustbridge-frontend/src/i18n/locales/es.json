@@ -20,8 +20,8 @@
     "close": "Cerrar"
   },
   "header": {
-    "title": "TrustBridge",
-    "searchPlaceholder": "Buscar TrustBridge",
+    "title": "Novax Yield",
+    "searchPlaceholder": "Buscar Novax Yield",
     "connectWallet": "Conectar Billetera",
     "disconnectWallet": "Desconectar Billetera",
     "completeProfile": "Completar Perfil",
@@ -43,7 +43,7 @@
     "title": "Mercado de Descubrimiento",
     "subtitle": "activos disponibles para negociar",
     "noAssets": "No se encontraron activos",
-    "noAssetsDescription": "No hay activos disponibles actualmente en la cadena de bloques Mantle",
+    "noAssetsDescription": "No hay activos disponibles actualmente en la cadena de bloques Etherlink",
     "allAssets": "Todos los Activos",
     "realWorldAssets": "Activos del Mundo Real",
     "verifiedAssets": "Activos Verificados",

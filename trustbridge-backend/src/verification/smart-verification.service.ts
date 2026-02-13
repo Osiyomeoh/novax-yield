@@ -4,7 +4,7 @@ import { Model } from 'mongoose';
 import { VerificationRequest, VerificationRequestDocument, VerificationStatus } from '../schemas/verification-request.schema';
 import { Asset, AssetDocument } from '../schemas/asset.schema';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { HederaService } from '../hedera/hedera.service';
+// import { HederaService } from '../hedera/hedera.service'; // Removed - use Novax contracts for Etherlink
 
 export interface VerificationTier {
   name: 'INSTANT' | 'FAST' | 'STANDARD';
@@ -60,7 +60,7 @@ export class SmartVerificationService {
     @InjectModel(VerificationRequest.name) private verificationModel: Model<VerificationRequestDocument>,
     @InjectModel(Asset.name) private assetModel: Model<AssetDocument>,
     private eventEmitter: EventEmitter2,
-    private hederaService: HederaService,
+    // private hederaService: HederaService, // Removed - use Novax contracts for Etherlink
   ) {}
 
   /**

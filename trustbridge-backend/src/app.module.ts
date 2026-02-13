@@ -9,44 +9,21 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './auth/auth.module';
 
-// Feature modules
-import { AssetsModule } from './assets/assets.module';
-import { InvestmentsModule } from './investments/investments.module';
+// Feature modules - Only Novax Yield related modules
 import { VerificationModule } from './verification/verification.module';
-import { PortfolioModule } from './portfolio/portfolio.module';
-import { AnalyticsModule } from './analytics/analytics.module';
-import { TradingModule } from './trading/trading.module';
 import { AMCModule } from './amc/amc.module';
 import { AMCPoolsModule } from './amc-pools/amc-pools.module';
-import { PoolTokensModule } from './pool-tokens/pool-tokens.module';
-import { DividendsModule } from './dividends/dividends.module';
-import { RWAModule } from './rwa/rwa.module';
-import { CollectionsModule } from './collections/collections.module';
-import { RoyaltiesModule } from './royalties/royalties.module';
 
-// Service modules
-import { HederaModule } from './hedera/hedera.module';
-import { MantleModule } from './mantle/mantle.module';
+// Service modules - Only essential services for Novax Yield
 import { ChainlinkModule } from './chainlink/chainlink.module';
 import { UsersModule } from './users/users.module';
 import { FileUploadModule } from './file-upload/file-upload.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { WebSocketModule } from './websocket/websocket.module';
 import { AdminModule } from './admin/admin.module';
-import { PublicModule } from './public/public.module';
-import { MobileModule } from './mobile/mobile.module';
-import { PaymentsModule } from './payments/payments.module';
-import { ExternalApisModule } from './external-apis/external-apis.module';
-import { TokenomicsModule } from './tokenomics/tokenomics.module';
 import { IPFSModule } from './ipfs/ipfs.module';
-import { PoolsModule } from './pools/pools.module';
 import { HealthModule } from './health/health.module';
-import { ApiModule } from './api/api.module';
-import { ActivityModule } from './activity/activity.module';
 import { KycModule } from './kyc/kyc.module';
-import { AIModule } from './ai/ai.module';
-import { PagaModule } from './paga/paga.module';
-import { AssetOwnersModule } from './asset-owners/asset-owners.module';
 
 import { AppController } from './app.controller';
 
@@ -89,44 +66,21 @@ import { AppController } from './app.controller';
     DatabaseModule,
     AuthModule,
 
-    // Feature modules
-    AssetsModule,
-    InvestmentsModule,
+    // Feature modules - Only Novax Yield related
     VerificationModule,
-    PortfolioModule,
-    AnalyticsModule,
-    TradingModule,
     AMCModule,
     AMCPoolsModule,
-    PoolTokensModule,
-    DividendsModule,
-    RWAModule,
-    CollectionsModule,
-    RoyaltiesModule,
 
-    // Service modules
-    HederaModule,
-    MantleModule, // New Mantle service module
+    // Service modules - Only essential services
     ChainlinkModule,
     UsersModule,
     FileUploadModule,
     NotificationsModule,
     WebSocketModule,
     AdminModule,
-    PublicModule,
-    MobileModule,
-    PaymentsModule,
-    ExternalApisModule,
-    TokenomicsModule,
     IPFSModule,
-    PoolsModule,
     HealthModule,
-    ApiModule,
-    ActivityModule,
     KycModule,
-    AIModule,
-    PagaModule,
-    AssetOwnersModule,
   ],
 })
 export class AppModule {}

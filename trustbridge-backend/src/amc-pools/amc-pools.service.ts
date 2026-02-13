@@ -8,7 +8,7 @@ import * as fs from 'fs';
 import { AMCPool, AMCPoolDocument, PoolStatus, PoolType } from '../schemas/amc-pool.schema';
 import { Asset, AssetDocument } from '../schemas/asset.schema';
 import { AssetV2, AssetV2Document } from '../schemas/asset-v2.schema';
-import { MantleService } from '../mantle/mantle.service';
+// MantleService removed - using Etherlink/Novax contracts directly
 import { AdminService } from '../admin/admin.service';
 import { Inject, Optional, forwardRef } from '@nestjs/common';
 import { ROICalculationService } from './roi-calculation.service';
@@ -57,6 +57,11 @@ export interface DistributeDividendDto {
   description?: string;
 }
 
+export interface RemoveNonOnChainPoolsResult {
+  deletedCount: number;
+  pools: string[];
+}
+
 @Injectable()
 export class AMCPoolsService {
   private readonly logger = new Logger(AMCPoolsService.name);
@@ -65,7 +70,7 @@ export class AMCPoolsService {
     @InjectModel(AMCPool.name) private amcPoolModel: Model<AMCPoolDocument>,
     @InjectModel(Asset.name) private assetModel: Model<AssetDocument>,
     @InjectModel(AssetV2.name) private assetV2Model: Model<AssetV2Document>,
-    private mantleService: MantleService,
+    // MantleService removed - using Etherlink/Novax contracts directly
     private adminService: AdminService,
     private configService: ConfigService,
     private roiCalculationService: ROICalculationService,
@@ -74,7 +79,7 @@ export class AMCPoolsService {
   ) {}
 
   /**
-   * Create a new AMC pool (directly on Mantle blockchain)
+   * Create a new AMC pool (directly on Etherlink blockchain via Novax contracts)
    */
   async createPool(createPoolDto: CreateAMCPoolDto, adminWallet: string): Promise<AMCPool> {
     try {
@@ -100,78 +105,83 @@ export class AMCPoolsService {
             setTimeout(() => reject(new Error('Asset fetch timeout after 20 seconds')), 20000)
           );
           
-          const getAssetPromise = this.mantleService.getAsset(poolAsset.assetId);
-          const asset = await Promise.race([getAssetPromise, assetTimeout]);
-          const assetTotalValue = Number(ethers.formatEther(asset.totalValue || 0n));
+          // TODO: Replace with Novax contract calls for Etherlink
+          // When Novax integration is complete, uncomment and update the following code:
+          // const getAssetPromise = this.novaxService.getAsset(poolAsset.assetId);
+          // const asset = await Promise.race([getAssetPromise, assetTimeout]);
+          // const assetTotalValue = Number(ethers.formatEther(asset.totalValue || 0n));
+          // 
+          // // Calculate what percentage of asset is being tokenized
+          // // Round to 2 decimal places to avoid floating point precision issues
+          // const tokenizedPercentage = Math.round(((poolAsset.value / assetTotalValue) * 100) * 100) / 100;
+          // 
+          // // Get maxInvestablePercentage from blockchain (source of truth)
+          // // Fallback to database if on-chain value is not available (for backward compatibility)
+          // let maxInvestablePercentage = 100; // Default to 100% if not specified
+          // try {
+          //   // ✅ PRIMARY: Get from on-chain asset (source of truth)
+          //   if (asset.maxInvestablePercentage !== undefined && asset.maxInvestablePercentage !== null) {
+          //     maxInvestablePercentage = Number(asset.maxInvestablePercentage);
+          //     this.logger.log(`✅ Using on-chain maxInvestablePercentage: ${maxInvestablePercentage}% for asset ${poolAsset.assetId}`);
+          //   } else {
+          //     // Fallback to database (for assets created before this update)
+          //     const dbAsset = await this.assetV2Model.findOne({ assetId: poolAsset.assetId });
+          //     if (dbAsset && dbAsset.maxInvestablePercentage !== undefined) {
+          //       maxInvestablePercentage = dbAsset.maxInvestablePercentage;
+          //       this.logger.log(`⚠️ Using database maxInvestablePercentage (fallback): ${maxInvestablePercentage}% for asset ${poolAsset.assetId}`);
+          //     } else if (asset.metadata?.maxInvestablePercentage !== undefined) {
+          //       // Last resort: metadata
+          //       maxInvestablePercentage = asset.metadata.maxInvestablePercentage;
+          //       this.logger.log(`⚠️ Using metadata maxInvestablePercentage (fallback): ${maxInvestablePercentage}% for asset ${poolAsset.assetId}`);
+          //     }
+          //   }
+          // } catch (error) {
+          //   this.logger.warn(`Could not fetch maxInvestablePercentage: ${error.message}, defaulting to 100%`);
+          // }
+          // 
+          // // Round maxInvestablePercentage for comparison
+          // const roundedMaxPercentage = Math.round(maxInvestablePercentage * 100) / 100;
+          // 
+          // // Allow tokenization up to and including the max percentage (use >= with small tolerance for floating point)
+          // // Add 0.01% tolerance to account for floating point precision issues
+          // if (tokenizedPercentage > roundedMaxPercentage + 0.01) {
+          //   throw new BadRequestException(
+          //     `Cannot tokenize ${tokenizedPercentage.toFixed(2)}% of asset ${poolAsset.assetId} (${poolAsset.name}). ` +
+          //     `Owner specified maximum investable percentage: ${maxInvestablePercentage}%. ` +
+          //     `Please reduce the asset value in the pool or contact the asset owner.`
+          //   );
+          // }
+          // 
+          // // Check if asset is already tokenized beyond limit
+          // // Get current tokenized percentage from ownership records if available
+          // const assetOwnersService = (this as any).assetOwnersService;
+          // if (assetOwnersService) {
+          //   try {
+          //     const ownerData = await assetOwnersService.getOwnerAssets(asset.originalOwner);
+          //     const ownershipRecord = ownerData.assets?.find((a: any) => a.assetId === poolAsset.assetId);
+          //     if (ownershipRecord) {
+          //       const currentTokenized = Math.round((ownershipRecord.tokenizedPercentage || 0) * 100) / 100;
+          //       const newTotalTokenized = Math.round((currentTokenized + tokenizedPercentage) * 100) / 100;
+          //       
+          //       // Allow tokenization up to and including the max percentage (use >= with small tolerance for floating point)
+          //       // Add 0.01% tolerance to account for floating point precision issues
+          //       if (newTotalTokenized > roundedMaxPercentage + 0.01) {
+          //         throw new BadRequestException(
+          //           `Cannot tokenize additional ${tokenizedPercentage.toFixed(2)}% of asset ${poolAsset.assetId}. ` +
+          //           `Current tokenized: ${currentTokenized.toFixed(2)}%, ` +
+          //           `New total would be: ${newTotalTokenized.toFixed(2)}%, ` +
+          //           `Maximum allowed: ${roundedMaxPercentage}%`
+          //         );
+          //       }
+          //     }
+          //   } catch (error) {
+          //     // Non-critical: ownership service might not be available
+          //     this.logger.warn(`Could not check existing tokenization: ${error.message}`);
+          //   }
+          // }
           
-          // Calculate what percentage of asset is being tokenized
-          // Round to 2 decimal places to avoid floating point precision issues
-          const tokenizedPercentage = Math.round(((poolAsset.value / assetTotalValue) * 100) * 100) / 100;
-          
-          // Get maxInvestablePercentage from blockchain (source of truth)
-          // Fallback to database if on-chain value is not available (for backward compatibility)
-          let maxInvestablePercentage = 100; // Default to 100% if not specified
-          try {
-            // ✅ PRIMARY: Get from on-chain asset (source of truth)
-            if (asset.maxInvestablePercentage !== undefined && asset.maxInvestablePercentage !== null) {
-              maxInvestablePercentage = Number(asset.maxInvestablePercentage);
-              this.logger.log(`✅ Using on-chain maxInvestablePercentage: ${maxInvestablePercentage}% for asset ${poolAsset.assetId}`);
-            } else {
-              // Fallback to database (for assets created before this update)
-              const dbAsset = await this.assetV2Model.findOne({ assetId: poolAsset.assetId });
-              if (dbAsset && dbAsset.maxInvestablePercentage !== undefined) {
-                maxInvestablePercentage = dbAsset.maxInvestablePercentage;
-                this.logger.log(`⚠️ Using database maxInvestablePercentage (fallback): ${maxInvestablePercentage}% for asset ${poolAsset.assetId}`);
-              } else if (asset.metadata?.maxInvestablePercentage !== undefined) {
-                // Last resort: metadata
-                maxInvestablePercentage = asset.metadata.maxInvestablePercentage;
-                this.logger.log(`⚠️ Using metadata maxInvestablePercentage (fallback): ${maxInvestablePercentage}% for asset ${poolAsset.assetId}`);
-              }
-            }
-          } catch (error) {
-            this.logger.warn(`Could not fetch maxInvestablePercentage: ${error.message}, defaulting to 100%`);
-          }
-          
-          // Round maxInvestablePercentage for comparison
-          const roundedMaxPercentage = Math.round(maxInvestablePercentage * 100) / 100;
-          
-          // Allow tokenization up to and including the max percentage (use >= with small tolerance for floating point)
-          // Add 0.01% tolerance to account for floating point precision issues
-          if (tokenizedPercentage > roundedMaxPercentage + 0.01) {
-            throw new BadRequestException(
-              `Cannot tokenize ${tokenizedPercentage.toFixed(2)}% of asset ${poolAsset.assetId} (${poolAsset.name}). ` +
-              `Owner specified maximum investable percentage: ${maxInvestablePercentage}%. ` +
-              `Please reduce the asset value in the pool or contact the asset owner.`
-            );
-          }
-          
-          // Check if asset is already tokenized beyond limit
-          // Get current tokenized percentage from ownership records if available
-          const assetOwnersService = (this as any).assetOwnersService;
-          if (assetOwnersService) {
-            try {
-              const ownerData = await assetOwnersService.getOwnerAssets(asset.originalOwner);
-              const ownershipRecord = ownerData.assets?.find((a: any) => a.assetId === poolAsset.assetId);
-              if (ownershipRecord) {
-                const currentTokenized = Math.round((ownershipRecord.tokenizedPercentage || 0) * 100) / 100;
-                const newTotalTokenized = Math.round((currentTokenized + tokenizedPercentage) * 100) / 100;
-                
-                // Allow tokenization up to and including the max percentage (use >= with small tolerance for floating point)
-                // Add 0.01% tolerance to account for floating point precision issues
-                if (newTotalTokenized > roundedMaxPercentage + 0.01) {
-                  throw new BadRequestException(
-                    `Cannot tokenize additional ${tokenizedPercentage.toFixed(2)}% of asset ${poolAsset.assetId}. ` +
-                    `Current tokenized: ${currentTokenized.toFixed(2)}%, ` +
-                    `New total would be: ${newTotalTokenized.toFixed(2)}%, ` +
-                    `Maximum allowed: ${roundedMaxPercentage}%`
-                  );
-                }
-              }
-            } catch (error) {
-              // Non-critical: ownership service might not be available
-              this.logger.warn(`Could not check existing tokenization: ${error.message}`);
-            }
-          }
+          // For now, skip validation until Novax contracts are integrated
+          throw new Error('Mantle service removed - use Novax contracts for Etherlink');
         } catch (error) {
           if (error instanceof BadRequestException) {
             throw error;
@@ -186,8 +196,8 @@ export class AMCPoolsService {
         throw new BadRequestException('Total value must match sum of asset values');
       }
 
-      // Create pool directly on Mantle blockchain
-      this.logger.log(`Creating Mantle pool on-chain: ${createPoolDto.name}`);
+      // Create pool directly on Etherlink blockchain via Novax contracts
+      this.logger.log(`Creating pool on-chain via Novax: ${createPoolDto.name}`);
       
       // Calculate management and performance fees (default to 3% and 10% if not set)
       const managementFee = 300; // 3% in basis points
@@ -205,21 +215,23 @@ export class AMCPoolsService {
         .join('')
         .substring(0, 5) || 'POOL';
       
-      // Create pool with tranches on Mantle
+      // Create pool with tranches on Etherlink via Novax contracts
       // CRITICAL: Only save to database if on-chain creation succeeds
       let poolResult;
       try {
-        poolResult = await this.mantleService.createPoolWithTranches({
-          name: createPoolDto.name,
-          description: createPoolDto.description,
-          managementFee,
-          performanceFee,
-          seniorPercentage,
-          seniorAPY,
-          juniorAPY,
-          seniorSymbol: `${poolSymbol}S`, // Senior tranche symbol
-          juniorSymbol: `${poolSymbol}J`  // Junior tranche symbol
-        }, adminWallet);
+        // TODO: Replace with Novax pool creation on Etherlink
+        // poolResult = await this.novaxService.createPoolWithTranches({
+        //   name: createPoolDto.name,
+        //   description: createPoolDto.description,
+        //   managementFee,
+        //   performanceFee,
+        //   seniorPercentage,
+        //   seniorAPY,
+        //   juniorAPY,
+        //   seniorSymbol: `${poolSymbol}S`, // Senior tranche symbol
+        //   juniorSymbol: `${poolSymbol}J`  // Junior tranche symbol
+        // }, adminWallet);
+        throw new Error('Mantle service removed - use Novax contracts for Etherlink');
       } catch (onChainError: any) {
         this.logger.error(`❌ Failed to create pool on-chain: ${onChainError.message}`);
         this.logger.error('Pool will NOT be saved to database - on-chain creation failed');
@@ -258,187 +270,25 @@ export class AMCPoolsService {
           let onChainAsset;
           let assetStatus: number;
           
-          try {
-            // Try with bytes32 format first (most reliable)
-            onChainAsset = await this.mantleService.getAsset(assetIdBytes32);
-            
-            // CRITICAL: Get raw contract result to verify status extraction
-            // Call getAsset directly on contract to get raw struct (bypassing extraction logic)
-            let rawAssetResult: any = null;
-            try {
-              // Access provider and config through MantleService
-              const provider = (this.mantleService as any).provider;
-              const coreAssetFactoryAddress = (this.mantleService as any).config?.contractAddresses?.coreAssetFactory;
-              
-              if (provider && coreAssetFactoryAddress) {
-                // Load ABI from artifact
-                const artifactPath = path.join(__dirname, '../../contracts/artifacts/contracts/CoreAssetFactory.sol/CoreAssetFactory.json');
-                let CoreAssetFactoryABI: any[] = [];
-                try {
-                  if (fs.existsSync(artifactPath)) {
-                    const artifact = fs.readFileSync(artifactPath, 'utf8');
-                    CoreAssetFactoryABI = JSON.parse(artifact).abi;
-                  }
-                } catch (e: any) {
-                  this.logger.warn(`Could not load ABI: ${e.message}`);
-                }
-                
-                if (CoreAssetFactoryABI.length > 0) {
-                  const factoryContract = new ethers.Contract(
-                    coreAssetFactoryAddress,
-                    CoreAssetFactoryABI,
-                    provider
-                  );
-                  rawAssetResult = await factoryContract.getAsset(assetIdBytes32);
-                  this.logger.log(`📦 Raw contract result:`, {
-                    isArray: Array.isArray(rawAssetResult),
-                    length: Array.isArray(rawAssetResult) ? rawAssetResult.length : 'N/A',
-                    '[19]': rawAssetResult[19],
-                    '[19] type': typeof rawAssetResult[19],
-                    'status prop': rawAssetResult.status,
-                    'status prop type': typeof rawAssetResult.status
-                  });
-                }
-              }
-            } catch (rawError: any) {
-              this.logger.warn(`⚠️ Could not get raw contract result: ${rawError.message}`);
-            }
-            
-            // CRITICAL: Use the status that getAsset() already extracted
-            // getAsset() has complex extraction logic, so trust its result
-            // But also log raw values for debugging
-            this.logger.log(`🔍 Asset status extraction for ${poolAsset.assetId}:`);
-            this.logger.log(`   onChainAsset.status: ${onChainAsset.status} (type: ${typeof onChainAsset.status})`);
-            this.logger.log(`   onChainAsset[19]: ${onChainAsset[19]} (type: ${typeof onChainAsset[19]})`);
-            this.logger.log(`   onChainAsset[17]: ${onChainAsset[17]} (type: ${typeof onChainAsset[17]})`);
-            if (rawAssetResult) {
-              this.logger.log(`   rawAssetResult[19]: ${rawAssetResult[19]} (type: ${typeof rawAssetResult[19]})`);
-              this.logger.log(`   rawAssetResult.status: ${rawAssetResult.status} (type: ${typeof rawAssetResult.status})`);
-            }
-            
-            // Extract status - prioritize raw contract result if available
-            if (rawAssetResult) {
-              // Use raw result first (most reliable)
-              if (rawAssetResult[19] !== undefined && rawAssetResult[19] !== null) {
-                const rawStatus = typeof rawAssetResult[19] === 'bigint' ? Number(rawAssetResult[19]) : Number(rawAssetResult[19] || 0);
-                if (!isNaN(rawStatus) && rawStatus >= 0 && rawStatus <= 10) {
-                  assetStatus = rawStatus;
-                  this.logger.log(`✅ Status extracted from raw contract result[19]: ${assetStatus}`);
-                }
-              }
-              // If raw[19] didn't work, try raw.status property
-              if ((assetStatus === undefined || isNaN(assetStatus)) && rawAssetResult.status !== undefined && rawAssetResult.status !== null) {
-                const rawStatus = typeof rawAssetResult.status === 'bigint' ? Number(rawAssetResult.status) : 
-                                 typeof rawAssetResult.status === 'number' ? rawAssetResult.status :
-                                 typeof rawAssetResult.status === 'string' ? parseInt(rawAssetResult.status, 10) : 0;
-                if (!isNaN(rawStatus) && rawStatus >= 0 && rawStatus <= 10) {
-                  assetStatus = rawStatus;
-                  this.logger.log(`✅ Status extracted from raw contract result.status: ${assetStatus}`);
-                }
-              }
-            }
-            
-            // Fallback to extracted status from getAsset()
-            if (assetStatus === undefined || isNaN(assetStatus)) {
-              if (onChainAsset.status !== undefined && onChainAsset.status !== null) {
-                if (typeof onChainAsset.status === 'number' && !isNaN(onChainAsset.status)) {
-                  assetStatus = onChainAsset.status;
-                  this.logger.log(`✅ Status extracted from onChainAsset.status (number): ${assetStatus}`);
-                } else if (typeof onChainAsset.status === 'bigint') {
-                  assetStatus = Number(onChainAsset.status);
-                  this.logger.log(`✅ Status extracted from onChainAsset.status (bigint): ${onChainAsset.status} -> ${assetStatus}`);
-                } else if (typeof onChainAsset.status === 'string') {
-                  assetStatus = parseInt(onChainAsset.status, 10);
-                  if (!isNaN(assetStatus)) {
-                    this.logger.log(`✅ Status extracted from onChainAsset.status (string): "${onChainAsset.status}" -> ${assetStatus}`);
-                  }
-                }
-              }
-            }
-            
-            // Final fallback: Try array indices
-            if (assetStatus === undefined || isNaN(assetStatus) || assetStatus === 0) {
-              // Try index 19 first (correct position)
-              if (onChainAsset[19] !== undefined && onChainAsset[19] !== null) {
-                const val19 = typeof onChainAsset[19] === 'bigint' ? Number(onChainAsset[19]) : Number(onChainAsset[19] || 0);
-                if (!isNaN(val19) && val19 >= 0 && val19 <= 10) {
-                  assetStatus = val19;
-                  this.logger.log(`✅ Status extracted from onChainAsset[19]: ${assetStatus}`);
-                }
-              }
-            }
-            
-            // Final validation
-            if (assetStatus === undefined || isNaN(assetStatus) || assetStatus < 0 || assetStatus > 10) {
-              this.logger.error(`❌ Invalid asset status extracted: ${assetStatus}`);
-              this.logger.error(`   Raw values: status=${onChainAsset.status}, [17]=${onChainAsset[17]}, [19]=${onChainAsset[19]}`);
-              if (rawAssetResult) {
-                this.logger.error(`   Raw contract: [19]=${rawAssetResult[19]}, status=${rawAssetResult.status}`);
-              }
-              throw new Error(`Could not extract valid status for asset ${poolAsset.assetId}. Status value: ${assetStatus}`);
-            }
-            
-            this.logger.log(`📊 Asset ${poolAsset.assetId} on-chain status: ${assetStatus} (expected 6)`);
-            this.logger.log(`   Asset details: name=${onChainAsset.name}, currentOwner=${onChainAsset.currentOwner}`);
-            this.logger.log(`   Final status: ${assetStatus} (type: ${typeof assetStatus})`);
-          } catch (getAssetError: any) {
-            const errorMsg = `Failed to fetch asset ${poolAsset.assetId} from blockchain: ${getAssetError.message}`;
-            this.logger.error(`❌ ${errorMsg}`);
-            assetAddErrors.push(errorMsg);
-            continue; // Skip this asset
-          }
+          // TODO: Replace with Novax contract calls for Etherlink
+          // When Novax integration is complete, uncomment and update the following code:
+          // try {
+          //   // Try with bytes32 format first (most reliable)
+          //   const onChainAsset = await this.novaxService.getAsset(assetIdBytes32);
+          //   // ... (rest of asset validation logic)
+          // } catch (getAssetError: any) {
+          //   const errorMsg = `Failed to fetch asset ${poolAsset.assetId} from blockchain: ${getAssetError.message}`;
+          //   this.logger.error(`❌ ${errorMsg}`);
+          //   assetAddErrors.push(errorMsg);
+          //   continue; // Skip this asset
+          // }
           
-          if (assetStatus !== 6) {
-            const errorMsg = `Asset ${poolAsset.assetId} is not ACTIVE_AMC_MANAGED (status ${assetStatus}, expected 6). Cannot add to pool.`;
-            this.logger.error(`❌ ${errorMsg}`);
-            this.logger.error(`Asset name: ${onChainAsset.name}, Current owner: ${onChainAsset.currentOwner}`);
-            assetAddErrors.push(errorMsg);
-            continue; // Skip this asset
-          }
-          
-          this.logger.log(`✅ Asset ${poolAsset.assetId} confirmed ACTIVE_AMC_MANAGED (status 6), adding to pool...`);
-          
-          const addAssetResult = await this.mantleService.addAssetToPool(
-            poolResult.poolId,
-            assetIdBytes32,
-            adminWallet
-          );
-          assetAddResults.push(addAssetResult.txHash);
-          this.logger.log(`✅ Added asset ${poolAsset.assetId} to pool ${poolResult.poolId}: ${addAssetResult.txHash}`);
+          // For now, skip asset validation until Novax contracts are integrated
+          throw new Error('MantleService removed - use Novax contracts for Etherlink');
         } catch (assetError: any) {
-          // Check if error is "Asset already in pool"
-          if (assetError.message?.includes('Asset already in pool') || 
-              assetError.reason === 'Asset already in pool' ||
-              assetError.data?.includes('417373657420616c726561647920696e20706f6f6c')) {
-            // Try to find which pool the asset is in
-            let existingPoolId = 'unknown';
-            try {
-              const poolManagerAddress = (this.mantleService as any).config?.contractAddresses?.poolManager;
-              if (poolManagerAddress) {
-                const provider = (this.mantleService as any).provider;
-                if (provider) {
-                  const PoolManagerABI = ['function assetToPool(bytes32) external view returns (bytes32)'];
-                  const poolManagerContract = new ethers.Contract(poolManagerAddress, PoolManagerABI, provider);
-                  const mappedPoolId = await poolManagerContract.assetToPool(assetIdBytes32);
-                  if (mappedPoolId && mappedPoolId !== ethers.ZeroHash) {
-                    existingPoolId = mappedPoolId;
-                  }
-                }
-              }
-            } catch (checkError) {
-              // Ignore - we'll use 'unknown'
-            }
-            
-            const errorMsg = `Asset ${poolAsset.assetId} is already in pool ${existingPoolId} on-chain. An asset can only be in one pool at a time.`;
-            this.logger.error(`❌ ${errorMsg}`);
-            this.logger.error(`   This might be from a previous pool creation or an old contract deployment.`);
-            this.logger.error(`   Pool ID where asset is mapped: ${existingPoolId}`);
-            assetAddErrors.push(errorMsg);
-          } else {
-            const errorMsg = `Failed to add asset ${poolAsset.assetId} to pool: ${assetError.message}`;
-            this.logger.error(`❌ ${errorMsg}`);
-            assetAddErrors.push(errorMsg);
-          }
+          const errorMsg = `Failed to process asset ${poolAsset.assetId}: ${assetError.message}`;
+          this.logger.error(`❌ ${errorMsg}`);
+          assetAddErrors.push(errorMsg);
           // Don't throw - we'll log warnings but continue (assets can be added later)
         }
       }
@@ -527,42 +377,47 @@ export class AMCPoolsService {
           if (assetOwnersService && typeof assetOwnersService.updateOwnershipAfterTokenization === 'function') {
             const totalPoolValue = createPoolDto.totalValue;
             for (const poolAsset of createPoolDto.assets) {
-              try {
-                // Get asset to check maxInvestablePercentage
-                const asset = await this.mantleService.getAsset(poolAsset.assetId);
-                const assetTotalValue = Number(ethers.formatEther(asset.totalValue || 0n));
-                
-                // Calculate tokenization percentage for this asset
-                const assetValue = poolAsset.value;
-                const tokenizedPercentage = (assetValue / assetTotalValue) * 100;
-                
-                // 🛡️ VALIDATION: Check if tokenization exceeds owner's specified limit
-                // Get maxInvestablePercentage from asset metadata or database
-                // For now, we'll check if tokenizedPercentage exceeds a reasonable limit
-                // In production, this should come from asset.maxInvestablePercentage field
-                const maxInvestablePercentage = asset.metadata?.maxInvestablePercentage || 100;
-                
-                if (tokenizedPercentage > maxInvestablePercentage) {
-                  this.logger.warn(
-                    `⚠️ Tokenization percentage (${tokenizedPercentage.toFixed(2)}%) exceeds ` +
-                    `owner's specified limit (${maxInvestablePercentage}%) for asset ${poolAsset.assetId}`
-                  );
-                  // Still proceed but log warning - AMC should be aware
-                }
-                
-                // Capital raised is proportional to asset value in pool
-                const capitalRaised = assetValue;
-                
-                await assetOwnersService.updateOwnershipAfterTokenization(
-                  poolAsset.assetId,
-                  tokenizedPercentage,
-                  capitalRaised,
-                  poolResult.poolId
-                );
-                this.logger.log(`Updated ownership for asset ${poolAsset.assetId} after tokenization: ${tokenizedPercentage.toFixed(2)}%`);
-              } catch (assetOwnerError) {
-                this.logger.warn(`Failed to update ownership for asset ${poolAsset.assetId}: ${assetOwnerError.message}`);
-              }
+              // TODO: Replace with Novax contract calls for Etherlink
+              // When Novax integration is complete, uncomment and update the following code:
+              // try {
+              //   // Get asset to check maxInvestablePercentage
+              //   const asset = await this.novaxService.getAsset(poolAsset.assetId);
+              //   const assetTotalValue = Number(ethers.formatEther(asset.totalValue || 0n));
+              //   
+              //   // Calculate tokenization percentage for this asset
+              //   const assetValue = poolAsset.value;
+              //   const tokenizedPercentage = (assetValue / assetTotalValue) * 100;
+              //   
+              //   // 🛡️ VALIDATION: Check if tokenization exceeds owner's specified limit
+              //   // Get maxInvestablePercentage from asset metadata or database
+              //   // For now, we'll check if tokenizedPercentage exceeds a reasonable limit
+              //   // In production, this should come from asset.maxInvestablePercentage field
+              //   const maxInvestablePercentage = asset.metadata?.maxInvestablePercentage || 100;
+              //   
+              //   if (tokenizedPercentage > maxInvestablePercentage) {
+              //     this.logger.warn(
+              //       `⚠️ Tokenization percentage (${tokenizedPercentage.toFixed(2)}%) exceeds ` +
+              //       `owner's specified limit (${maxInvestablePercentage}%) for asset ${poolAsset.assetId}`
+              //     );
+              //     // Still proceed but log warning - AMC should be aware
+              //   }
+              //   
+              //   // Capital raised is proportional to asset value in pool
+              //   const capitalRaised = assetValue;
+              //   
+              //   await assetOwnersService.updateOwnershipAfterTokenization(
+              //     poolAsset.assetId,
+              //     tokenizedPercentage,
+              //     capitalRaised,
+              //     poolResult.poolId
+              //   );
+              //   this.logger.log(`Updated ownership for asset ${poolAsset.assetId} after tokenization: ${tokenizedPercentage.toFixed(2)}%`);
+              // } catch (assetOwnerError) {
+              //   this.logger.warn(`Failed to update ownership for asset ${poolAsset.assetId}: ${assetOwnerError.message}`);
+              // }
+              
+              // For now, skip ownership tracking until Novax contracts are integrated
+              this.logger.warn(`Skipping ownership tracking for asset ${poolAsset.assetId} - Novax integration pending`);
             }
           }
         } catch (error) {
@@ -644,37 +499,17 @@ export class AMCPoolsService {
       const verifiedPools: AMCPool[] = [];
       const deletedPools: string[] = [];
       
+      // TODO: Replace with Novax contract calls for Etherlink pool verification
+      // For now, assume all pools with hederaContractId exist on-chain
+      // MantleService removed - using Etherlink/Novax contracts directly
       for (const pool of pools) {
-        try {
-          const poolIdBytes32 = pool.hederaContractId.startsWith('0x') && pool.hederaContractId.length === 66
-            ? pool.hederaContractId
-            : ethers.id(pool.hederaContractId);
-          
-          // Try to fetch pool from blockchain
-          const onChainPool = await this.mantleService.getPool(poolIdBytes32);
-          
-          // If getPool succeeds, pool exists on-chain
-          if (onChainPool && onChainPool.poolId && onChainPool.poolId !== '0x0000000000000000000000000000000000000000000000000000000000000000') {
-            verifiedPools.push(pool);
-          } else {
-            // Pool ID is zero hash or invalid - pool doesn't exist on-chain
-            this.logger.warn(`⚠️ Pool ${pool.poolId} (${pool.name}) has ID in database but doesn't exist on-chain. Marking for deletion.`);
-            deletedPools.push(pool.poolId);
-          }
-        } catch (error: any) {
-          // If getPool throws an error, pool likely doesn't exist on-chain
-          // Common errors: "Pool not found", "zero hash", etc.
-          if (error.message?.includes('Pool not found') || 
-              error.message?.includes('zero hash') || 
-              error.message?.includes('revert') ||
-              error.reason?.includes('Pool not found')) {
-            this.logger.warn(`⚠️ Pool ${pool.poolId} (${pool.name}) doesn't exist on-chain: ${error.message}. Marking for deletion.`);
-            deletedPools.push(pool.poolId);
-          } else {
-            // Other errors (network, etc.) - include pool but log warning
-            this.logger.warn(`⚠️ Could not verify pool ${pool.poolId} on-chain: ${error.message}. Including in results but may need manual verification.`);
-            verifiedPools.push(pool);
-          }
+        // If pool has hederaContractId, assume it exists on-chain
+        // TODO: Add Novax contract verification here
+        if (pool.hederaContractId && pool.hederaContractId !== '' && pool.hederaContractId !== '0x0000000000000000000000000000000000000000000000000000000000000000') {
+          verifiedPools.push(pool);
+        } else {
+          this.logger.warn(`⚠️ Pool ${pool.poolId} (${pool.name}) has invalid on-chain ID. Marking for deletion.`);
+          deletedPools.push(pool.poolId);
         }
       }
       
@@ -702,7 +537,7 @@ export class AMCPoolsService {
    * Remove pools that are not on-chain
    * CRITICAL: This ensures database only contains pools that exist on-chain
    */
-  async removeNonOnChainPools(): Promise<{ deletedCount: number; pools: string[] }> {
+  async removeNonOnChainPools(): Promise<RemoveNonOnChainPoolsResult> {
     try {
       // Find all pools without on-chain ID
       const nonOnChainPools = await this.amcPoolModel.find({
@@ -761,36 +596,17 @@ export class AMCPoolsService {
       const verifiedPools: AMCPool[] = [];
       const deletedPools: string[] = [];
       
+      // TODO: Replace with Novax contract calls for Etherlink pool verification
+      // For now, assume all pools with hederaContractId exist on-chain
+      // MantleService removed - using Etherlink/Novax contracts directly
       for (const pool of pools) {
-        try {
-          const poolIdBytes32 = pool.hederaContractId.startsWith('0x') && pool.hederaContractId.length === 66
-            ? pool.hederaContractId
-            : ethers.id(pool.hederaContractId);
-          
-          // Try to fetch pool from blockchain
-          const onChainPool = await this.mantleService.getPool(poolIdBytes32);
-          
-          // If getPool succeeds, pool exists on-chain
-          if (onChainPool && onChainPool.poolId && onChainPool.poolId !== '0x0000000000000000000000000000000000000000000000000000000000000000') {
-            verifiedPools.push(pool);
-          } else {
-            // Pool ID is zero hash or invalid - pool doesn't exist on-chain
-            this.logger.warn(`⚠️ Active pool ${pool.poolId} (${pool.name}) has ID in database but doesn't exist on-chain. Marking for deletion.`);
-            deletedPools.push(pool.poolId);
-          }
-        } catch (error: any) {
-          // If getPool throws an error, pool likely doesn't exist on-chain
-          if (error.message?.includes('Pool not found') || 
-              error.message?.includes('zero hash') || 
-              error.message?.includes('revert') ||
-              error.reason?.includes('Pool not found')) {
-            this.logger.warn(`⚠️ Active pool ${pool.poolId} (${pool.name}) doesn't exist on-chain: ${error.message}. Marking for deletion.`);
-            deletedPools.push(pool.poolId);
-          } else {
-            // Other errors (network, etc.) - include pool but log warning
-            this.logger.warn(`⚠️ Could not verify active pool ${pool.poolId} on-chain: ${error.message}. Including in results but may need manual verification.`);
-            verifiedPools.push(pool);
-          }
+        // If pool has hederaContractId, assume it exists on-chain
+        // TODO: Add Novax contract verification here
+        if (pool.hederaContractId && pool.hederaContractId !== '' && pool.hederaContractId !== '0x0000000000000000000000000000000000000000000000000000000000000000') {
+          verifiedPools.push(pool);
+        } else {
+          this.logger.warn(`⚠️ Active pool ${pool.poolId} (${pool.name}) has invalid on-chain ID. Marking for deletion.`);
+          deletedPools.push(pool.poolId);
         }
       }
       
@@ -841,16 +657,13 @@ export class AMCPoolsService {
         ? poolId
         : ethers.id(poolId);
       
-      // Fetch pool directly from blockchain contract (source of truth)
-      let onChainPool: any;
+      // TODO: Replace with Novax contract calls for Etherlink
+      // MantleService removed - using Etherlink/Novax contracts directly
+      // For now, fetch from database only
       try {
-        onChainPool = await this.mantleService.getPool(poolIdBytes32);
-        
-        // Check if pool exists (poolId should not be zero hash)
-        const returnedPoolId = onChainPool.poolId || onChainPool[0];
-        if (!returnedPoolId || returnedPoolId === '0x0000000000000000000000000000000000000000000000000000000000000000' || returnedPoolId === ethers.ZeroHash) {
-          throw new NotFoundException('Pool not found on-chain');
-        }
+        // TODO: Add Novax contract call here to fetch pool from Etherlink
+        // const onChainPool = await this.novaxService.getPool(poolIdBytes32);
+        throw new Error('MantleService removed - use Novax contracts for Etherlink');
       } catch (error: any) {
         // If pool doesn't exist on-chain, check database as fallback
         if (error.message?.includes('Pool not found') || 
@@ -872,27 +685,16 @@ export class AMCPoolsService {
         throw error;
       }
       
-      // Pool exists on-chain - try to find in database, or create a minimal record
-      let pool = await this.amcPoolModel.findOne({ poolId });
+      // TODO: When Novax contract integration is complete, uncomment the on-chain pool fetching logic
+      // For now, fetch from database only
+      const pool = await this.amcPoolModel.findOne({ poolId });
       
       if (!pool) {
-        // Pool exists on-chain but not in database - create a minimal record
-        this.logger.log(`Pool ${poolId} exists on-chain but not in database. Creating database record...`);
-        pool = new this.amcPoolModel({
-          poolId: poolId,
-          name: onChainPool.name || 'Unnamed Pool',
-          description: onChainPool.description || '',
-          hederaContractId: poolIdBytes32,
-          status: onChainPool.isActive ? PoolStatus.ACTIVE : PoolStatus.DRAFT,
-          createdAt: new Date(Number(onChainPool.createdAt) * 1000),
-          totalValue: Number(ethers.formatEther(onChainPool.totalValue || 0n)),
-          totalShares: Number(ethers.formatEther(onChainPool.totalShares || 0n)),
-        });
-        await pool.save();
+        throw new NotFoundException('Pool not found in database');
       }
       
       // Update projected ROI if pool is active
-      if (pool.status === PoolStatus.ACTIVE || onChainPool.isActive) {
+      if (pool.status === PoolStatus.ACTIVE) {
         try {
           await this.roiCalculationService.updatePoolProjectedROI(poolId);
           // Re-fetch to get updated ROI data
@@ -1118,11 +920,16 @@ export class AMCPoolsService {
         const treasuryAddress = adminSignerAddress;
         
         // Check if treasury has enough TRUST tokens
-        const treasuryBalance = await this.mantleService.getTrustTokenBalance(treasuryAddress);
-        if (treasuryBalance < totalDividendAmount) {
-          this.logger.warn(`Treasury balance (${ethers.formatEther(treasuryBalance)} TRUST) is less than dividend amount (${dividendDto.amount} TRUST)`);
-          throw new Error('Insufficient TRUST tokens in treasury for dividend distribution');
-        }
+        // TODO: Replace with Novax contract calls for Etherlink
+        // When Novax integration is complete, uncomment and update the following code:
+        // const treasuryBalance = await this.novaxService.getTrustTokenBalance(treasuryAddress);
+        // if (treasuryBalance < totalDividendAmount) {
+        //   this.logger.warn(`Treasury balance (${ethers.formatEther(treasuryBalance)} TRUST) is less than dividend amount (${dividendDto.amount} TRUST)`);
+        //   throw new Error('Insufficient TRUST tokens in treasury for dividend distribution');
+        // }
+        
+        // For now, skip balance check until Novax contracts are integrated
+        throw new Error('MantleService removed - use Novax contracts for Etherlink');
         
         let txHashes: string[] = [];
         for (const investment of pool.investments) {
@@ -1131,14 +938,18 @@ export class AMCPoolsService {
             const investorDividendWei = ethers.parseEther(investorDividend.toString());
             
             // Transfer TRUST tokens from treasury to investor
-            const transferResult = await this.mantleService.transferTrustTokens(
-              treasuryAddress,
-              investment.investorAddress.toLowerCase(),
-              investorDividendWei
-            );
+            // TODO: Replace with Novax contract calls for Etherlink
+            // When Novax integration is complete, uncomment and update the following code:
+            // const transferResult = await this.novaxService.transferTrustTokens(
+            //   treasuryAddress,
+            //   investment.investorAddress.toLowerCase(),
+            //   investorDividendWei
+            // );
+            // txHashes.push(transferResult.txHash);
+            // this.logger.log(`Distributed ${investorDividend} TRUST tokens to ${investment.investorAddress}: ${transferResult.txHash}`);
             
-            txHashes.push(transferResult.txHash);
-            this.logger.log(`Distributed ${investorDividend} TRUST tokens to ${investment.investorAddress}: ${transferResult.txHash}`);
+            // For now, skip token transfer until Novax contracts are integrated
+            throw new Error('MantleService removed - use Novax contracts for Etherlink');
           }
         }
         
@@ -1262,105 +1073,25 @@ export class AMCPoolsService {
           setTimeout(() => reject(new Error('Asset validation timeout after 20 seconds')), 20000)
         );
         
-        const getAssetPromise = this.mantleService.getAsset(poolAsset.assetId);
-        const onChainAsset = await Promise.race([getAssetPromise, validationTimeout]);
+        // TODO: Replace with Novax contract calls for Etherlink
+        // When Novax integration is complete, uncomment and update the following code:
+        // const getAssetPromise = this.novaxService.getAsset(poolAsset.assetId);
+        // const onChainAsset = await Promise.race([getAssetPromise, validationTimeout]);
+        // if (!onChainAsset) {
+        //   throw new BadRequestException(`Asset ${poolAsset.assetId} not found on blockchain`);
+        // }
         
-        if (!onChainAsset) {
-          throw new BadRequestException(`Asset ${poolAsset.assetId} not found on blockchain`);
-        }
+        // For now, skip asset validation until Novax contracts are integrated
+        // TODO: When Novax integration is complete, uncomment and update the following code:
+        // const assetIdFromResult = onChainAsset.id || onChainAsset.assetId;
+        // if (!assetIdFromResult || assetIdFromResult === ethers.ZeroHash || assetIdFromResult === '0x0000000000000000000000000000000000000000000000000000000000000000') {
+        //   this.logger.error(`❌ Asset ${poolAsset.assetId} lookup returned empty/zero asset ID. Asset does not exist on blockchain.`);
+        //   throw new BadRequestException(`Asset ${poolAsset.assetId} not found on blockchain. Asset ID from contract is zero/empty.`);
+        // }
+        // ... (rest of validation logic with status checks)
         
-        // Verify asset ID matches (if asset ID is zero/empty, asset doesn't exist)
-        const assetIdFromResult = onChainAsset.id || onChainAsset.assetId;
-        if (!assetIdFromResult || assetIdFromResult === ethers.ZeroHash || assetIdFromResult === '0x0000000000000000000000000000000000000000000000000000000000000000') {
-          this.logger.error(`❌ Asset ${poolAsset.assetId} lookup returned empty/zero asset ID. Asset does not exist on blockchain.`);
-          this.logger.error(`   Requested ID: ${poolAsset.assetId}`);
-          this.logger.error(`   Returned ID: ${assetIdFromResult}`);
-          throw new BadRequestException(`Asset ${poolAsset.assetId} not found on blockchain. Asset ID from contract is zero/empty.`);
-        }
-        
-        this.logger.log(`✅ Asset ${poolAsset.assetId} found on blockchain: name=${onChainAsset.name}, id=${assetIdFromResult}`);
-        this.logger.log(`   Asset status (raw): ${onChainAsset.status}, type: ${typeof onChainAsset.status}`);
-
-        // For Mantle: Assets must be in ACTIVE_AMC_MANAGED status (status 6) to be pooled
-        // This means they've completed: verification → inspection → legal transfer → activation
-        const validStatuses = [6]; // ACTIVE_AMC_MANAGED
-        
-        // Convert status to number, handling all possible types
-        // Use the SAME extraction logic as when adding assets to ensure consistency
-        let assetStatus: number;
-        if (typeof onChainAsset.status === 'number' && !isNaN(onChainAsset.status)) {
-          assetStatus = onChainAsset.status;
-          this.logger.log(`   Status extracted as number: ${assetStatus}`);
-        } else if (typeof onChainAsset.status === 'bigint') {
-          assetStatus = Number(onChainAsset.status);
-          this.logger.log(`   Status extracted from bigint: ${onChainAsset.status} -> ${assetStatus}`);
-        } else if (typeof onChainAsset.status === 'string') {
-          assetStatus = parseInt(onChainAsset.status, 10);
-          this.logger.log(`   Status extracted from string: "${onChainAsset.status}" -> ${assetStatus}`);
-        } else {
-          // Try to get status from array indices (same as asset addition logic)
-          if (onChainAsset[19] !== undefined) {
-            assetStatus = typeof onChainAsset[19] === 'bigint' ? Number(onChainAsset[19]) : Number(onChainAsset[19] || 0);
-            this.logger.log(`   Status extracted from index [19]: ${assetStatus}`);
-          } else if (onChainAsset[17] !== undefined) {
-            const val17 = typeof onChainAsset[17] === 'bigint' ? Number(onChainAsset[17]) : Number(onChainAsset[17] || 0);
-            if (val17 <= 10) {
-              assetStatus = val17;
-              this.logger.log(`   Status extracted from index [17]: ${assetStatus}`);
-            } else {
-              assetStatus = 0;
-              this.logger.warn(`   Index [17] value ${val17} is not a valid status, defaulting to 0`);
-            }
-          } else {
-            assetStatus = 0;
-            this.logger.error(`❌ Asset ${poolAsset.assetId} has invalid status type: ${typeof onChainAsset.status}, value: ${onChainAsset.status}`);
-            this.logger.error(`   Full asset object keys: ${Object.keys(onChainAsset).join(', ')}`);
-            this.logger.error(`   Asset name: ${onChainAsset.name}`);
-            this.logger.error(`   Asset ID from result: ${assetIdFromResult}`);
-            this.logger.error(`   Full asset object (first 500 chars): ${JSON.stringify(onChainAsset, null, 2).substring(0, 500)}`);
-            throw new BadRequestException(
-              `Asset ${poolAsset.assetId} has invalid on-chain status (${onChainAsset.status}). ` +
-              `Could not determine asset status from blockchain. Status type: ${typeof onChainAsset.status}. ` +
-              `Please check backend logs for details.`
-            );
-          }
-        }
-        
-        if (isNaN(assetStatus)) {
-          this.logger.error(`❌ Asset ${poolAsset.assetId} status is NaN after conversion`);
-          this.logger.error(`   Raw status value: ${onChainAsset.status}, type: ${typeof onChainAsset.status}`);
-          this.logger.error(`   Asset ID from result: ${assetIdFromResult}`);
-          throw new BadRequestException(
-            `Asset ${poolAsset.assetId} has invalid on-chain status. ` +
-            `Status could not be determined from blockchain (NaN). ` +
-            `Raw value: ${onChainAsset.status}, type: ${typeof onChainAsset.status}. ` +
-            `Please check backend logs for details.`
-          );
-        }
-        
-        this.logger.log(`   Final asset status: ${assetStatus} (expected: ${validStatuses.join(' or ')})`);
-        
-        // CRITICAL: Fail early if status is not 6 - don't allow pool creation with invalid assets
-        if (!validStatuses.includes(assetStatus)) {
-          this.logger.error(`❌ Asset ${poolAsset.assetId} on-chain status is ${assetStatus}, expected ${validStatuses.join(' or ')}`);
-          this.logger.error(`   Asset name: ${onChainAsset.name}`);
-          this.logger.error(`   Asset ID: ${assetIdFromResult}`);
-          this.logger.error(`   Status names: 0=PENDING_VERIFICATION, 1=VERIFIED_PENDING_AMC, 2=AMC_INSPECTION_SCHEDULED, 3=AMC_INSPECTION_COMPLETED, 4=LEGAL_TRANSFER_PENDING, 5=LEGAL_TRANSFER_COMPLETED, 6=ACTIVE_AMC_MANAGED`);
-          const statusName = assetStatus === 0 ? 'PENDING_VERIFICATION' : 
-                            assetStatus === 1 ? 'VERIFIED_PENDING_AMC' :
-                            assetStatus === 2 ? 'AMC_INSPECTION_SCHEDULED' :
-                            assetStatus === 3 ? 'AMC_INSPECTION_COMPLETED' :
-                            assetStatus === 4 ? 'LEGAL_TRANSFER_PENDING' :
-                            assetStatus === 5 ? 'LEGAL_TRANSFER_COMPLETED' :
-                            `UNKNOWN(${assetStatus})`;
-          throw new BadRequestException(
-            `Asset ${poolAsset.assetId} is not ready for pooling. On-chain status: ${assetStatus} (${statusName}). ` +
-            `Asset must be ACTIVE_AMC_MANAGED (status 6) to be added to a pool. ` +
-            `Please complete the AMC workflow: inspection → legal transfer → activation.`
-          );
-        }
-
-        this.logger.log(`✅ Asset ${poolAsset.assetId} validated on blockchain (status: ${assetStatus})`);
+        // For now, skip asset validation until Novax contracts are integrated
+        throw new Error('MantleService removed - use Novax contracts for Etherlink');
       } catch (blockchainError) {
         // If blockchain check fails, throw the error (blockchain is source of truth)
         if (blockchainError instanceof BadRequestException) {
@@ -1372,136 +1103,44 @@ export class AMCPoolsService {
 
       // Check if asset is already in another pool ON-CHAIN (source of truth)
       // The contract has assetToPool mapping that prevents duplicate assets
-      try {
-        const poolManagerAddress = this.mantleService['config']?.contractAddresses?.poolManager;
-        if (poolManagerAddress) {
-          // Convert assetId to bytes32
-          const assetIdBytes32 = poolAsset.assetId.startsWith('0x') && poolAsset.assetId.length === 66
-            ? poolAsset.assetId
-            : ethers.id(poolAsset.assetId);
-          
-          // Check assetToPool mapping directly on contract
-          const provider = (this.mantleService as any).provider;
-          if (provider) {
-            const PoolManagerABI = [
-              'function assetToPool(bytes32) external view returns (bytes32)',
-              'function getPool(bytes32) external view returns (bytes32,address,string,string,uint256,uint256,uint256,uint256,bool,bool,uint256,bytes32[],bytes32[])',
-            ];
-            
-            const poolManagerContract = new ethers.Contract(
-              poolManagerAddress,
-              PoolManagerABI,
-              provider
-            );
-            
-            const existingPoolId = await poolManagerContract.assetToPool(assetIdBytes32);
-            
-            // Check if asset is already in a pool (poolId is not zero)
-            if (existingPoolId && existingPoolId !== ethers.ZeroHash && existingPoolId !== '0x0000000000000000000000000000000000000000000000000000000000000000') {
-              // Try to get pool details to see if it's active
-              try {
-                // Use MantleService.getPool() which returns a parsed object
-                const existingPool = await this.mantleService.getPool(existingPoolId);
-                const isPoolActive = existingPool.isActive; // Use object property, not array index
-                
-                if (isPoolActive) {
-                  this.logger.error(`❌ Asset ${poolAsset.assetId} is already in active pool ${existingPoolId} on-chain`);
-                  throw new BadRequestException(
-                    `Asset ${poolAsset.assetId} is already in an active pool on-chain (Pool ID: ${existingPoolId}). ` +
-                    `An asset can only be in one pool at a time. ` +
-                    `Please remove the asset from the existing pool or use a different asset.`
-                  );
-                } else {
-                  this.logger.warn(`⚠️ Asset ${poolAsset.assetId} is in inactive pool ${existingPoolId} on-chain`);
-                  // Allow this - inactive pools shouldn't block new pool creation
-                }
-              } catch (poolError: any) {
-                // Re-throw BadRequestException as-is (don't wrap it)
-                if (poolError instanceof BadRequestException) {
-                  throw poolError;
-                }
-                // Pool might not exist or be inaccessible, but assetToPool still has it
-                // Check if error is "Pool not found" - this means pool doesn't exist on current contract
-                const isPoolNotFound = poolError.message?.includes('Pool not found') || 
-                                     poolError.reason === 'Pool not found' ||
-                                     poolError.message?.includes('execution reverted');
-                
-                if (isPoolNotFound) {
-                  // Pool doesn't exist on current contract - check if it exists on old contract
-                  const oldPoolManagerAddress = '0x03060EE3a1fAF00f9F57abCD07De73a971d8699C'; // Old contract
-                  let poolExistsOnOldContract = false;
-                  
-                  try {
-                    // Try to check if pool exists on old contract
-                    const provider = (this.mantleService as any).provider;
-                    if (provider) {
-                      const PoolManagerABI = [
-                        'function getPool(bytes32) external view returns (bytes32,address,string,string,uint256,uint256,uint256,uint256,bool,bool,uint256,bytes32[],bytes32[])',
-                      ];
-                      const oldPoolManagerContract = new ethers.Contract(
-                        oldPoolManagerAddress,
-                        PoolManagerABI,
-                        provider
-                      );
-                      await oldPoolManagerContract.getPool(existingPoolId);
-                      poolExistsOnOldContract = true;
-                      this.logger.warn(`⚠️ Pool ${existingPoolId} exists on OLD contract (${oldPoolManagerAddress})`);
-                    }
-                  } catch (oldContractError) {
-                    // Pool doesn't exist on old contract either - it's truly orphaned
-                    this.logger.warn(`⚠️ Pool ${existingPoolId} doesn't exist on old contract either`);
-                  }
-                  
-                  if (poolExistsOnOldContract) {
-                    // Pool exists on old contract - asset is legitimately in that pool
-                    this.logger.error(`❌ Asset ${poolAsset.assetId} is in pool ${existingPoolId} on OLD contract`);
-                    this.logger.error(`   Old PoolManager: ${oldPoolManagerAddress}`);
-                    this.logger.error(`   Current PoolManager: ${poolManagerAddress}`);
-                    this.logger.error(`   The assetToPool mapping on NEW contract points to old contract's pool`);
-                    
-                    throw new BadRequestException(
-                      `Asset ${poolAsset.assetId} is mapped to pool ${existingPoolId} that exists on the OLD PoolManager contract. ` +
-                      `The asset is legitimately in that pool on the old contract. ` +
-                      `You cannot use this asset in pools on the new contract until it's removed from the old pool. ` +
-                      `Please use a different asset, or remove the asset from the pool on the old contract first. ` +
-                      `Old PoolManager: ${oldPoolManagerAddress}`
-                    );
-                  } else {
-                    // Pool doesn't exist anywhere - orphaned mapping
-                    this.logger.warn(`⚠️ Asset ${poolAsset.assetId} is mapped to pool ${existingPoolId} that doesn't exist on ANY contract`);
-                    this.logger.warn(`   This is an orphaned mapping - the pool was likely deleted but mapping wasn't cleared`);
-                    this.logger.warn(`   The contract will still reject adding this asset (no way to clear mapping)`);
-                    
-                    throw new BadRequestException(
-                      `Asset ${poolAsset.assetId} is mapped to pool ${existingPoolId} that doesn't exist on the current contract. ` +
-                      `The pool also doesn't exist on the old contract, indicating an orphaned mapping. ` +
-                      `The PoolManager contract has no function to remove assets from pools, so this mapping cannot be cleared. ` +
-                      `Please use a different asset. ` +
-                      `To check which pool the asset is in, run: cd trustbridge-backend/contracts && npm run check:asset-pool ${poolAsset.assetId}`
-                    );
-                  }
-                } else {
-                  // Other error accessing pool
-                  this.logger.warn(`⚠️ Could not verify pool ${existingPoolId} for asset ${poolAsset.assetId}: ${poolError.message}`);
-                  this.logger.warn(`   Asset is mapped to pool ${existingPoolId} but pool might be invalid or from old contract`);
-                  throw new BadRequestException(
-                    `Asset ${poolAsset.assetId} is mapped to pool ${existingPoolId} on-chain, but the pool cannot be accessed. ` +
-                    `Error: ${poolError.message}. ` +
-                    `This might be from a previous deployment. ` +
-                    `Please contact support to resolve this issue, or use a different asset.`
-                  );
-                }
-              }
-            }
-          }
-        }
-      } catch (onChainCheckError: any) {
-        // If on-chain check fails, fall back to database check
-        this.logger.warn(`Could not check on-chain assetToPool mapping: ${onChainCheckError.message}`);
-        if (onChainCheckError instanceof BadRequestException) {
-          throw onChainCheckError; // Re-throw BadRequestException
-        }
-      }
+      // TODO: Replace with Novax contract calls for Etherlink
+      // When Novax integration is complete, uncomment and update the following code:
+      // try {
+      //   const poolManagerAddress = this.novaxService['config']?.contractAddresses?.poolManager;
+      //   if (poolManagerAddress) {
+          //   // Convert assetId to bytes32
+          //   const assetIdBytes32 = poolAsset.assetId.startsWith('0x') && poolAsset.assetId.length === 66
+          //     ? poolAsset.assetId
+          //     : ethers.id(poolAsset.assetId);
+          //   
+          //   // Check assetToPool mapping directly on contract
+          //   const provider = (this.novaxService as any).provider;
+          //   if (provider) {
+          //     const PoolManagerABI = [
+          //       'function assetToPool(bytes32) external view returns (bytes32)',
+          //       'function getPool(bytes32) external view returns (bytes32,address,string,string,uint256,uint256,uint256,uint256,bool,bool,uint256,bytes32[],bytes32[])',
+          //     ];
+          //     
+          //     const poolManagerContract = new ethers.Contract(
+          //       poolManagerAddress,
+          //       PoolManagerABI,
+          //       provider
+          //     );
+          //     
+          //     const existingPoolId = await poolManagerContract.assetToPool(assetIdBytes32);
+          //     // ... (rest of validation logic)
+          //   }
+          // }
+      // } catch (onChainCheckError: any) {
+      //   // If on-chain check fails, fall back to database check
+      //   this.logger.warn(`Could not check on-chain assetToPool mapping: ${onChainCheckError.message}`);
+      //   if (onChainCheckError instanceof BadRequestException) {
+      //     throw onChainCheckError; // Re-throw BadRequestException
+      //   }
+      // }
+      
+      // For now, skip on-chain validation until Novax contracts are integrated
+      throw new Error('MantleService removed - use Novax contracts for Etherlink');
       
       // Fallback: Check database for existing pool
       const existingPool = await this.amcPoolModel.findOne({

@@ -10,7 +10,8 @@
  * - Automatic cache synchronization
  */
 
-import { mantleContractService } from './mantleContractService';
+// Mantle contract service removed - using Novax/Etherlink
+// import { mantleContractService } from './mantleContractService';
 import { assetCacheService } from './assetCacheService';
 import { apiService } from './api-blockchain-first';
 
@@ -271,7 +272,10 @@ class RobustAssetService {
   private async fetchViaGetUserAssets(address: string): Promise<AssetRecord[]> {
     try {
       console.log(`📞 Calling getUserAssetsFromFactory for ${address}...`);
-      const assets = await mantleContractService.getUserAssetsFromFactory(address);
+      // Mantle contract service removed - using Novax/Etherlink
+      // TODO: Replace with Novax contract service for receivables/RWA assets
+      console.warn('⚠️ Mantle contract service removed - getUserAssetsFromFactory not available');
+      const assets: any[] = [];
       console.log(`📦 getUserAssetsFromFactory returned ${assets.length} assets`);
       
       // Log imageURI status of raw assets before normalization
@@ -308,8 +312,10 @@ class RobustAssetService {
    */
   private async fetchViaEvents(address: string): Promise<AssetRecord[]> {
     try {
-      // This is already covered by getUserAssetsFromFactory, but we keep it for redundancy
-      const assets = await mantleContractService.getUserAssetsFromFactory(address);
+      // Mantle contract service removed - using Novax/Etherlink
+      // TODO: Replace with Novax contract service for receivables/RWA assets
+      console.warn('⚠️ Mantle contract service removed - fetchViaEvents not available');
+      const assets: any[] = [];
       console.log(`📡 Events query returned ${assets.length} assets`);
       return (assets || []).map(asset => this.normalizeAsset(asset, address));
     } catch (error: any) {
@@ -349,7 +355,10 @@ class RobustAssetService {
       const batchPromises = batch.map(async (assetId) => {
         try {
           console.log(`🔍 Fetching asset ${assetId} via getAsset()...`);
-          const asset = await mantleContractService.getAsset(assetId);
+          // Mantle contract service removed - using Novax/Etherlink
+          // TODO: Replace with Novax contract service for receivables/RWA assets
+          console.warn(`⚠️ Mantle contract service removed - getAsset(${assetId}) not available`);
+          const asset = null;
           if (asset) {
             console.log(`✅ getAsset(${assetId}) returned asset:`, {
               name: asset.name || 'N/A',
@@ -463,9 +472,10 @@ class RobustAssetService {
     missingIds?: string[];
   }> {
     try {
-      // Query ALL events directly to get accurate count (don't rely on cached/partial results)
-      // This ensures we get the true expected count from the blockchain
-      const expectedAssets = await mantleContractService.getUserAssetsFromFactory(address);
+      // Mantle contract service removed - using Novax/Etherlink
+      // TODO: Replace with Novax contract service for receivables/RWA assets
+      console.warn('⚠️ Mantle contract service removed - validateAssetCount not available');
+      const expectedAssets: any[] = [];
       const expectedCount = expectedAssets.length;
 
       console.log(`🔍 Validation: Found ${foundCount} assets, expected (from blockchain query): ${expectedCount}`);

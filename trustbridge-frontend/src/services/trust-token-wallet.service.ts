@@ -1,4 +1,5 @@
-import { hederaContractService, ContractConfig } from './hedera-contract.service';
+// Hedera contract service removed - using Etherlink/Novax contracts instead
+// import { hederaContractService, ContractConfig } from './hedera-contract.service';
 import { 
   TransferTransaction, 
   PrivateKey, 
@@ -22,7 +23,9 @@ export interface StakeResult {
 }
 
 export class TrustTokenWalletService {
-  private contractService = hederaContractService;
+  // Hedera contract service removed - using Etherlink/Novax contracts instead
+  // private contractService = hederaContractService;
+  private contractService = null as any;
 
   /**
    * Check if wallet is connected

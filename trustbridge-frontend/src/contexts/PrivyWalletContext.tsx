@@ -36,6 +36,7 @@ export const PrivyWalletProvider: React.FC<{ children: ReactNode }> = ({ childre
   const [provider, setProvider] = React.useState<any | null>(null);
   const [isCreatingWallet, setIsCreatingWallet] = React.useState(false);
 
+
   const walletAddress = wallets[0]?.address || user?.wallet?.address || null;
   const isConnected = ready && authenticated && !!walletAddress;
   
@@ -157,30 +158,27 @@ export const PrivyWalletProvider: React.FC<{ children: ReactNode }> = ({ childre
           ethersProvider = wallet.provider;
         }
         
-        // Method 3: For embedded wallets, try to get provider from wallet methods
+        // Method 3: For embedded wallets, use Etherlink RPC directly
+        // Embedded wallets from Privy don't have a direct provider, so we use Etherlink RPC
         if (!ethersProvider && isEmbeddedWallet) {
-          console.log('Privy - Embedded wallet detected, trying alternative methods...');
-          
-          // Try wallet.getProvider if it exists
-          if (typeof wallet.getProvider === 'function') {
-            try {
-              ethersProvider = await wallet.getProvider();
-              console.log('Privy - wallet.getProvider() succeeded');
-            } catch (err) {
-              console.warn('Privy - wallet.getProvider() failed:', err);
-            }
-          }
-          
-          // For embedded wallets, we don't need to create an ethers provider
-          // Privy embedded wallets handle signing through their own infrastructure
-          // We'll use the wallet's native signing methods in signMessage()
-          console.log('Privy - Embedded wallet detected - will use native signing methods (no provider needed)');
+          console.log('Privy - Embedded wallet detected, using Etherlink RPC...');
+          const etherlinkRpcUrl = import.meta.env.VITE_RPC_URL || 'https://node.shadownet.etherlink.com';
+          ethersProvider = new ethers.JsonRpcProvider(etherlinkRpcUrl);
+          console.log('✅ Privy - Created Etherlink provider for embedded wallet');
         }
         
         // Method 4: Only use window.ethereum for external wallets (NOT embedded wallets)
         if (!ethersProvider && !isEmbeddedWallet && window.ethereum) {
-          console.log('Privy - Using window.ethereum for external wallet');
+          console.log('Privy - Using window.ethereum for external wallet (MetaMask)');
           ethersProvider = new ethers.BrowserProvider(window.ethereum as any);
+        }
+        
+        // Method 5: For embedded wallets, use Etherlink RPC directly
+        if (!ethersProvider && isEmbeddedWallet) {
+          console.log('Privy - Using Etherlink RPC for embedded wallet');
+          const etherlinkRpcUrl = import.meta.env.VITE_RPC_URL || 'https://node.shadownet.etherlink.com';
+          ethersProvider = new ethers.JsonRpcProvider(etherlinkRpcUrl);
+          console.log('✅ Privy - Created Etherlink provider for embedded wallet');
         }
         
         if (!ethersProvider) {
@@ -202,37 +200,53 @@ export const PrivyWalletProvider: React.FC<{ children: ReactNode }> = ({ childre
         }
 
         // Get signer from provider
-        if (ethersProvider.getSigner) {
-          try {
-            ethersSigner = await ethersProvider.getSigner(walletAddress);
-          } catch (err) {
-            console.warn('Privy - getSigner(walletAddress) failed, trying getSigner() without address:', err);
+        // For embedded wallets with JsonRpcProvider, we don't need a signer (signing via Privy)
+        if (!isEmbeddedWallet || !(ethersProvider instanceof ethers.JsonRpcProvider)) {
+          if (ethersProvider.getSigner) {
             try {
-              ethersSigner = await ethersProvider.getSigner();
-            } catch (err2) {
-              console.warn('Privy - getSigner() also failed:', err2);
+              ethersSigner = await ethersProvider.getSigner(walletAddress);
+            } catch (err) {
+              console.warn('Privy - getSigner(walletAddress) failed, trying getSigner() without address:', err);
+              try {
+                ethersSigner = await ethersProvider.getSigner();
+              } catch (err2) {
+                console.warn('Privy - getSigner() also failed:', err2);
+              }
             }
+          } else if (typeof ethersProvider.getSigner === 'function') {
+            ethersSigner = await ethersProvider.getSigner();
           }
-        } else if (typeof ethersProvider.getSigner === 'function') {
-          ethersSigner = await ethersProvider.getSigner();
+        } else {
+          // Embedded wallet with JsonRpcProvider - signing via Privy, no ethers signer needed
+          console.log('Privy - Embedded wallet: Will use Privy signing methods (no ethers signer)');
+          ethersSigner = null;
         }
         
-        if (ethersSigner && isMounted) {
-          console.log('✅ Privy - Signer obtained successfully');
-          setSigner(ethersSigner);
-          setProvider(ethersProvider);
-        } else if (isMounted && attempt < maxRetries) {
-          // Retry if signer not available (wallet might still be initializing)
-          console.log(`⚠️ Privy - Signer not available yet, retrying in ${retryDelay}ms...`);
-          setTimeout(() => {
-            if (isMounted) {
-              getSignerAndProvider(attempt + 1);
-            }
-          }, retryDelay);
-        } else if (isMounted) {
-          console.warn('⚠️ Privy - Signer not available after all retries');
-          setSigner(null);
-          setProvider(null);
+        // For embedded wallets, we might not have a signer but we have a provider
+        // The provider is used for read operations, signing is done via Privy
+        if (isMounted) {
+          if (ethersSigner) {
+            console.log('✅ Privy - Signer obtained successfully');
+            setSigner(ethersSigner);
+            setProvider(ethersProvider);
+          } else if (isEmbeddedWallet && ethersProvider) {
+            // For embedded wallets, provider is enough (signing via Privy)
+            console.log('✅ Privy - Provider obtained for embedded wallet (signing via Privy)');
+            setSigner(null); // Will use Privy signing
+            setProvider(ethersProvider);
+          } else if (attempt < maxRetries) {
+            // Retry if signer not available (wallet might still be initializing)
+            console.log(`⚠️ Privy - Signer not available yet, retrying in ${retryDelay}ms...`);
+            setTimeout(() => {
+              if (isMounted) {
+                getSignerAndProvider(attempt + 1);
+              }
+            }, retryDelay);
+          } else {
+            console.warn('⚠️ Privy - Signer not available after all retries');
+            setSigner(null);
+            setProvider(null);
+          }
         }
       } catch (error) {
         if (!isMounted) return;

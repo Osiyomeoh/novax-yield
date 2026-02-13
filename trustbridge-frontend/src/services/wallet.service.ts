@@ -211,38 +211,6 @@ export class HashPackWalletProvider implements WalletProvider {
 }
 
 // Mock Wallet Provider for testing
-export class MockWalletProvider implements WalletProvider {
-  private accountId: string = '0.0.6923405';
-  private privateKey: PrivateKey = PrivateKey.fromString('0x29b72f47916186bb1cf4b823429d99f6e5659703b0201a8381211a468a1e2a19');
-  private isConnectedFlag: boolean = false;
-
-  async connect(): Promise<WalletInfo> {
-    this.isConnectedFlag = true;
-    return {
-      accountId: this.accountId,
-      privateKey: this.privateKey,
-      isConnected: true
-    };
-  }
-
-  async disconnect(): Promise<void> {
-    this.isConnectedFlag = false;
-  }
-
-  async signTransaction(transaction: Transaction): Promise<Transaction> {
-    // For mock, just return the transaction as-is
-    // In real implementation, this would sign with the user's private key
-    return transaction;
-  }
-
-  getAccountId(): string | null {
-    return this.isConnectedFlag ? this.accountId : null;
-  }
-
-  isConnected(): boolean {
-    return this.isConnectedFlag;
-  }
-}
 
 // Initialize with HashPack provider for production
 WalletService.setProvider(new HashPackWalletProvider());

@@ -650,13 +650,23 @@ const AMCPoolManagement: React.FC = () => {
               Create and manage investment pools backed by RWA assets
             </p>
           </div>
-          <button
-            onClick={() => setShowCreateForm(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
-          >
-            <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-            Create Pool
-          </button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => navigate('/dashboard/admin/create-pool')}
+              className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+              Create Novax Pool
+            </Button>
+            <Button
+              onClick={() => setShowCreateForm(true)}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+              Create RWA Pool
+            </Button>
+          </div>
         </div>
 
         {/* Stats Overview */}
@@ -796,13 +806,24 @@ const AMCPoolManagement: React.FC = () => {
                     Close
                   </button>
                 )}
-                <button
-                  onClick={() => setSelectedPool(pool)}
-                  className="flex-1 bg-gray-600 text-white px-3 py-2 rounded text-xs sm:text-sm font-medium hover:bg-gray-700 transition-colors flex items-center justify-center gap-1"
-                >
-                  <Settings className="w-3 h-3 sm:w-4 sm:h-4" />
-                  Manage
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setSelectedPool(pool)}
+                    className="flex-1 bg-gray-600 text-white px-3 py-2 rounded text-xs sm:text-sm font-medium hover:bg-gray-700 transition-colors flex items-center justify-center gap-1"
+                  >
+                    <Settings className="w-3 h-3 sm:w-4 sm:h-4" />
+                    Manage
+                  </button>
+                  {(pool.status === 'FUNDED' || pool.status === 'MATURED') && (
+                    <button
+                      onClick={() => navigate(`/dashboard/admin/pools/${pool.poolId}/payment`)}
+                      className="flex-1 bg-green-600 text-white px-3 py-2 rounded text-xs sm:text-sm font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-1"
+                    >
+                      <DollarSign className="w-3 h-3 sm:w-4 sm:h-4" />
+                      Record Payment
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))}

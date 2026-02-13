@@ -25,39 +25,36 @@ if (!privyAppId) {
   console.warn('Get your App ID from: https://privy.io');
 }
 
+// Initialize app - simple and clean
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <PrivyProvider
-      appId={privyAppId}
-      config={{
-        // Customize login methods - social logins need to be enabled in Privy dashboard
-        loginMethods: ['email', 'wallet', 'google', 'twitter', 'discord'],
-        // Appearance customization
-        appearance: {
-          theme: 'light',
-          accentColor: '#000000',
-          logo: 'https://trustbridge.africa/logo.png',
-        },
-        // Embedded wallet configuration
-        // We use programmatic wallet creation instead of automatic to have more control
-        embeddedWallets: {
-          createOnLogin: 'users-without-wallets', // Auto-create wallets for email/social login users
-          // Wallets are created programmatically in PrivyWalletContext for better error handling
-        },
-        // Disable Solana wallet support (we only use Ethereum)
-        externalWallets: {
-          solana: {
-            enabled: false,
+    <React.StrictMode>
+      <PrivyProvider
+        appId={privyAppId}
+        config={{
+          // Customize login methods - social logins need to be enabled in Privy dashboard
+          loginMethods: ['email', 'wallet', 'google', 'twitter', 'discord'],
+          // Appearance customization
+          appearance: {
+            theme: 'light',
+            accentColor: '#000000',
+            logo: 'https://trustbridge.africa/logo.png',
           },
-        },
-        // Note: Mantle network chains are not natively supported by Privy
-        // Users can switch to Mantle network after connecting their wallet
-        // Or configure custom chains if Privy supports them in the future
-      }}
-    >
-      <QueryClientProvider client={queryClient}>
-        <App />
-      </QueryClientProvider>
-    </PrivyProvider>
-  </React.StrictMode>
-)
+          // Embedded wallet configuration
+          embeddedWallets: {
+            createOnLogin: 'users-without-wallets', // Auto-create wallets for email/social login users
+          },
+          // Disable Solana wallet support (we only use Ethereum)
+          // Note: Must completely omit solana config or Privy will complain
+          externalWallets: {
+            // Solana is disabled - we only support Ethereum/EVM chains
+          },
+          // Note: Privy doesn't natively support custom chains like Etherlink
+          // Users should manually switch MetaMask to Etherlink network when needed
+        }}
+      >
+        <QueryClientProvider client={queryClient}>
+          <App />
+        </QueryClientProvider>
+      </PrivyProvider>
+    </React.StrictMode>
+  );

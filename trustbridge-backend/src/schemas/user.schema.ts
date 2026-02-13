@@ -56,6 +56,15 @@ export class User {
   @Prop()
   kycProvider?: string;
 
+  @Prop({ enum: KycStatus })
+  kybStatus?: KycStatus;
+
+  @Prop()
+  kybInquiryId?: string;
+
+  @Prop()
+  kybProvider?: string;
+
   @Prop({ required: true, enum: EmailVerificationStatus, default: EmailVerificationStatus.NOT_VERIFIED })
   emailVerificationStatus: EmailVerificationStatus;
 

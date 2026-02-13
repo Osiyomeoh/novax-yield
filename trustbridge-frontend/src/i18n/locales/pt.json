@@ -20,8 +20,8 @@
     "close": "Fechar"
   },
   "header": {
-    "title": "TrustBridge",
-    "searchPlaceholder": "Pesquisar TrustBridge",
+    "title": "Novax Yield",
+    "searchPlaceholder": "Pesquisar Novax Yield",
     "connectWallet": "Conectar Carteira",
     "disconnectWallet": "Desconectar Carteira",
     "completeProfile": "Completar Perfil",
@@ -43,7 +43,7 @@
     "title": "Mercado de Descoberta",
     "subtitle": "ativos disponíveis para negociação",
     "noAssets": "Nenhum ativo encontrado",
-    "noAssetsDescription": "Nenhum ativo está disponível atualmente na blockchain Mantle",
+    "noAssetsDescription": "Nenhum ativo está disponível atualmente na blockchain Etherlink",
     "allAssets": "Todos os Ativos",
     "realWorldAssets": "Ativos do Mundo Real",
     "verifiedAssets": "Ativos Verificados",

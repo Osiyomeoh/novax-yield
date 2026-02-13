@@ -4,6 +4,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiProperty, ApiConsumes, 
 import { IsString, IsNumber, IsObject, ValidateNested, IsArray, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
 import { VerificationService } from './verification.service';
+import { TradeVerificationService } from './trade-verification.service';
 import { SubmitVerificationDto } from './dto/submit-verification.dto';
 import { IPFSService } from '../services/ipfs.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -100,6 +101,7 @@ export class SubmitVerificationWithFilesDto {
 export class VerificationController {
   constructor(
     private readonly verificationService: VerificationService,
+    private readonly tradeVerificationService: TradeVerificationService,
     private readonly ipfsService: IPFSService,
   ) {}
 
@@ -487,5 +489,27 @@ export class VerificationController {
         HttpStatus.BAD_REQUEST
       );
     }
+  }
+
+  @Post('verify-trade')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Verify trade transaction (exporter, importer, and trade documents)' })
+  @ApiResponse({ status: 200, description: 'Trade verification completed' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async verifyTrade(@Body() body: any) {
+    const result = await this.tradeVerificationService.verifyTrade(body);
+    
+    return {
+      success: result.verified,
+      verified: result.verified,
+      riskScore: result.riskScore,
+      apr: result.apr,
+      reason: result.reason,
+      details: result.details,
+      message: result.verified 
+        ? 'Trade verified successfully' 
+        : `Trade verification failed: ${result.reason}`,
+    };
   }
 }

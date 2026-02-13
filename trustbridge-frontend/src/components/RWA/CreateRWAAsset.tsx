@@ -17,7 +17,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { useWallet } from '../../contexts/WalletContext';
-import { mantleContractService } from '../../services/mantleContractService';
+// Mantle service removed - using Etherlink/Novax contracts instead
 import { ethers } from 'ethers';
 import { useToast } from '../../hooks/useToast';
 import { apiService } from '../../services/api';
@@ -80,6 +80,10 @@ interface RWAAssetData {
   startDate?: string; // When payments start
   endDate?: string; // When payments end
   source?: string; // Source of cashflow (e.g., "Rental Income", "Service Revenue")
+  
+  // Trade Receivable Specific
+  importerAddress?: string; // Importer (invoice payer) address
+  invoiceNumber?: string; // Invoice number
 }
 
 const CreateRWAAsset: React.FC = () => {
@@ -187,6 +191,14 @@ const CreateRWAAsset: React.FC = () => {
       description: 'Finished goods, stock, warehouse inventory',
       category: 5, // OTHER in contract
       isPrimary: false
+    },
+    { 
+      value: 'TRADE_RECEIVABLE', 
+      label: 'Trade Receivable', 
+      icon: FileText, 
+      description: 'Invoices, trade receivables, cross-border financing',
+      category: 5, // OTHER in contract (trade receivables are RWA)
+      isPrimary: true
     }
   ];
 
@@ -512,6 +524,13 @@ const CreateRWAAsset: React.FC = () => {
         metadata.source = assetData.source;
       }
 
+      // Add trade receivable specific fields
+      if (assetData.type === 'TRADE_RECEIVABLE') {
+        metadata.importerAddress = assetData.importerAddress;
+        metadata.invoiceNumber = assetData.invoiceNumber;
+        metadata.dueDate = assetData.maturityDate; // Due date for invoice
+      }
+
       // Add compliance status for all types
       metadata.complianceStatus = assetData.complianceStatus;
 
@@ -583,8 +602,8 @@ const CreateRWAAsset: React.FC = () => {
       const evidenceHashes = uploadedFiles.map(f => f.cid || f.url);
       const documentTypes = uploadedFiles.map(f => f.name || 'Document');
 
-      // Step 4: Create RWA asset via Mantle smart contract
-      console.log('🚀 Creating RWA asset on Mantle Network...');
+      // Step 4: Create RWA asset via Etherlink smart contract
+      console.log('🚀 Creating RWA asset on Etherlink Network...');
       console.log('📋 Asset creation parameters:', {
         category: assetCategory,
         name: assetData.name,
@@ -603,31 +622,68 @@ const CreateRWAAsset: React.FC = () => {
         evidenceHashes: evidenceHashes
       });
 
-      // Initialize contract service if not already initialized
+      // Initialize Novax contract service if not already initialized
       if (signer) {
-        const { mantleContractService } = await import('../../services/mantleContractService');
+        const { novaxContractService } = await import('../../services/novaxContractService');
         const provider = new ethers.BrowserProvider(window.ethereum!);
-        mantleContractService.initialize(signer, provider);
+        novaxContractService.initialize(signer, provider);
       }
 
-      // Create RWA asset on-chain
-      const createResult = await mantleContractService.createRWAAsset({
-        category: assetCategory,
-        assetTypeString: assetData.type,
-        name: assetData.name,
-        location: locationString,
-        totalValue: ethers.parseEther(assetData.totalValue.toString()),
-        maturityDate: maturityTimestamp,
-        maxInvestablePercentage: assetData.maxInvestablePercentage || 100, // ✅ Pass to contract
-        evidenceHashes: evidenceHashes,
-        documentTypes: documentTypes,
-        imageURI: displayImageUrl, // ipfs://CID format
-        documentURI: metadataUrl, // ipfs://CID format for metadata
-        description: assetData.description
-      });
+      // Extract CID from metadata URL (already uploaded to IPFS above)
+      // The metadata was already uploaded and we have metadataCid and metadataUrl
+      const metadataCID = metadataCid || metadataUrl.replace('ipfs://', '').split('/')[0] || ethers.id(JSON.stringify(metadata));
 
-      console.log('✅ RWA asset created on Mantle:', createResult.assetId);
-      console.log('📋 Transaction hash:', createResult.txHash);
+      // Create asset on-chain using Novax contracts
+      const { novaxContractService } = await import('../../services/novaxContractService');
+      
+      let createResult: { assetId: string; txHash: string; receivableId?: string };
+      
+      if (assetData.type === 'TRADE_RECEIVABLE') {
+        // Trade Receivable: Use NovaxReceivableFactory
+        if (!assetData.importerAddress || !ethers.isAddress(assetData.importerAddress)) {
+          throw new Error('Invalid importer address');
+        }
+        
+        const dueDateTimestamp = assetData.maturityDate 
+          ? Math.floor(new Date(assetData.maturityDate).getTime() / 1000)
+          : 0;
+        
+        if (dueDateTimestamp <= Math.floor(Date.now() / 1000)) {
+          throw new Error('Due date must be in the future');
+        }
+        
+        const receivableResult = await novaxContractService.createReceivable(
+          assetData.importerAddress,
+          ethers.parseUnits(assetData.totalValue.toString(), 6), // USDC (6 decimals)
+          dueDateTimestamp,
+          metadataCID // IPFS CID as bytes32
+        );
+        
+        createResult = {
+          assetId: receivableResult.receivableId,
+          txHash: receivableResult.txHash,
+          receivableId: receivableResult.receivableId
+        };
+        
+        console.log('✅ Trade Receivable created on Etherlink:', createResult.assetId);
+        console.log('📋 Transaction hash:', createResult.txHash);
+      } else {
+        // RWA Asset: Use NovaxRwaFactory
+        const createRwaResult = await novaxContractService.createRwa(
+          assetCategory, // 0-5: REAL_ESTATE, AGRICULTURE, INFRASTRUCTURE, COMMODITY, EQUIPMENT, OTHER
+          ethers.parseUnits(assetData.totalValue.toString(), 6), // USDC (6 decimals)
+          assetData.maxLTV || 70, // Max LTV percentage (0-100)
+          metadataCID // IPFS CID as bytes32
+        );
+        
+        createResult = {
+          assetId: createRwaResult.assetId,
+          txHash: createRwaResult.txHash
+        };
+        
+        console.log('✅ RWA asset created on Etherlink:', createResult.assetId);
+        console.log('📋 Transaction hash:', createResult.txHash);
+      }
 
       // Sync asset to backend database with maxInvestablePercentage
       try {
@@ -670,9 +726,13 @@ const CreateRWAAsset: React.FC = () => {
       sessionStorage.setItem('profileNeedsRefresh', 'true');
       
       // Show success toast
+      const successMessage = assetData.type === 'TRADE_RECEIVABLE'
+        ? `Your trade receivable has been created on Etherlink Network with IPFS metadata. Receivable ID: ${createResult.assetId.slice(0, 10)}... Status: PENDING_VERIFICATION. Please wait for AMC approval.`
+        : `Your RWA asset has been created on Etherlink Network with IPFS metadata. Asset ID: ${createResult.assetId.slice(0, 10)}... Status: PENDING_VERIFICATION. Please wait for AMC approval.`;
+      
       toast({
-        title: 'RWA Asset Created Successfully!',
-        description: `Your RWA asset has been created on Mantle Network with IPFS metadata. Asset ID: ${createResult.assetId.slice(0, 10)}... Status: PENDING_VERIFICATION. Please wait a few seconds for the asset to appear on your profile.`,
+        title: assetData.type === 'TRADE_RECEIVABLE' ? 'Trade Receivable Created Successfully!' : 'RWA Asset Created Successfully!',
+        description: successMessage,
         variant: 'default'
       });
       
@@ -701,9 +761,19 @@ const CreateRWAAsset: React.FC = () => {
       case 1:
         return assetData.name && assetData.description && assetData.type;
       case 2:
+        if (assetData.type === 'TRADE_RECEIVABLE') {
+          return assetData.importerAddress && ethers.isAddress(assetData.importerAddress);
+        }
         return assetData.country && assetData.region && assetData.address;
       case 3:
-        // Validate maturity date is at least 1 year in the future
+        if (assetData.type === 'TRADE_RECEIVABLE') {
+          // Trade receivables: amount and due date (can be any future date)
+          const today = new Date();
+          const dueDate = assetData.maturityDate ? new Date(assetData.maturityDate) : null;
+          const isValidDueDate = dueDate && dueDate > today;
+          return assetData.totalValue > 0 && assetData.maturityDate && isValidDueDate;
+        }
+        // Validate maturity date is at least 1 year in the future for other assets
         const today = new Date();
         const oneYearFromNow = new Date(today);
         oneYearFromNow.setFullYear(today.getFullYear() + 1);
@@ -768,7 +838,7 @@ const CreateRWAAsset: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             className="text-primary-blue-light text-lg"
           >
-            Submit your real-world asset for tokenization on Mantle
+            Submit your real-world asset for tokenization on Etherlink
           </motion.p>
         </motion.div>
 
@@ -798,7 +868,7 @@ const CreateRWAAsset: React.FC = () => {
           </div>
           <div className="flex justify-between mt-2 text-xs text-primary-blue-light">
             <span>Basic Info</span>
-            <span>Location</span>
+            <span>{assetData.type === 'TRADE_RECEIVABLE' ? 'Invoice Details' : 'Location'}</span>
             <span>Financial</span>
             <span>Documents</span>
             <span>Review</span>
@@ -1297,8 +1367,46 @@ const CreateRWAAsset: React.FC = () => {
                 </>
               )}
 
+              {/* Trade Receivable: Invoice Details */}
+              {assetData.type === 'TRADE_RECEIVABLE' && (
+                <>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                    Trade Receivable Details
+                  </h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="sm:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Importer Address (Invoice Payer) *
+                      </label>
+                      <input
+                        type="text"
+                        value={assetData.importerAddress || ''}
+                        onChange={(e) => handleInputChange('importerAddress', e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="0x..."
+                      />
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Wallet address of the importer who will pay the invoice
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Invoice Number
+                      </label>
+                      <input
+                        type="text"
+                        value={assetData.invoiceNumber || ''}
+                        onChange={(e) => handleInputChange('invoiceNumber', e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="Invoice number (optional)"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
               {/* Other Asset Types: Basic Location (if needed) */}
-              {!['REAL_ESTATE', 'BONDS', 'CASHFLOW', 'BUSINESS'].includes(assetData.type) && assetData.type && (
+              {!['REAL_ESTATE', 'BONDS', 'CASHFLOW', 'BUSINESS', 'TRADE_RECEIVABLE'].includes(assetData.type) && assetData.type && (
                 <>
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
                     Asset Details
@@ -1354,9 +1462,48 @@ const CreateRWAAsset: React.FC = () => {
               className="space-y-6"
             >
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                Financial Details
+                {assetData.type === 'TRADE_RECEIVABLE' ? 'Invoice Financial Details' : 'Financial Details'}
               </h2>
               
+              {/* Trade Receivable: Amount and Due Date */}
+              {assetData.type === 'TRADE_RECEIVABLE' ? (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Invoice Amount (USDC) *
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={assetData.totalValue || ''}
+                        onChange={(e) => {
+                          const val = e.target.value === '' ? 0 : parseFloat(e.target.value);
+                          handleInputChange('totalValue', isNaN(val) ? 0 : val);
+                        }}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Invoice amount in USDC"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Due Date *
+                      </label>
+                      <input
+                        type="date"
+                        value={assetData.maturityDate}
+                        min={new Date().toISOString().split('T')[0]}
+                        onChange={(e) => handleInputChange('maturityDate', e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Payment due date for the invoice
+                      </p>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -1491,6 +1638,8 @@ const CreateRWAAsset: React.FC = () => {
                   </div>
                 )}
               </div>
+                </>
+              )}
             </motion.div>
           )}
 
@@ -1699,24 +1848,40 @@ const CreateRWAAsset: React.FC = () => {
                         </div>
                     </div>
                     
-                  <div>
-                    <h3 className="font-medium text-gray-900 dark:text-white mb-2">Location</h3>
-                    <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                      <p><strong>Country:</strong> {assetData.country}</p>
-                      <p><strong>Region:</strong> {assetData.region}</p>
-                      <p><strong>Address:</strong> {assetData.address}</p>
+                  {assetData.type === 'TRADE_RECEIVABLE' ? (
+                    <div>
+                      <h3 className="font-medium text-gray-900 dark:text-white mb-2">Invoice Details</h3>
+                      <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                        <p><strong>Importer Address:</strong> {assetData.importerAddress}</p>
+                        <p><strong>Invoice Number:</strong> {assetData.invoiceNumber || 'Not provided'}</p>
                       </div>
                     </div>
+                  ) : (
+                    <div>
+                      <h3 className="font-medium text-gray-900 dark:text-white mb-2">Location</h3>
+                      <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                        <p><strong>Country:</strong> {assetData.country}</p>
+                        <p><strong>Region:</strong> {assetData.region}</p>
+                        <p><strong>Address:</strong> {assetData.address}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="space-y-4">
                   <div>
-                    <h3 className="font-medium text-gray-900 dark:text-white mb-2">Financial Details</h3>
+                    <h3 className="font-medium text-gray-900 dark:text-white mb-2">
+                      {assetData.type === 'TRADE_RECEIVABLE' ? 'Invoice Financial Details' : 'Financial Details'}
+                    </h3>
                     <div className="text-sm text-primary-blue-light space-y-1">
-                      <p><strong>Value:</strong> ${assetData.totalValue.toLocaleString()}</p>
-                      <p><strong>APY:</strong> {assetData.expectedAPY}%</p>
-                      <p><strong>Maturity:</strong> {assetData.maturityDate}</p>
-                      <p><strong>Condition:</strong> {assetData.condition || 'Not specified'}</p>
+                      <p><strong>{assetData.type === 'TRADE_RECEIVABLE' ? 'Amount' : 'Value'}:</strong> ${assetData.totalValue.toLocaleString()}</p>
+                      {assetData.type !== 'TRADE_RECEIVABLE' && (
+                        <>
+                          <p><strong>APY:</strong> {assetData.expectedAPY}%</p>
+                          <p><strong>Condition:</strong> {assetData.condition || 'Not specified'}</p>
+                        </>
+                      )}
+                      <p><strong>{assetData.type === 'TRADE_RECEIVABLE' ? 'Due Date' : 'Maturity'}:</strong> {assetData.maturityDate}</p>
                         </div>
                     </div>
                     

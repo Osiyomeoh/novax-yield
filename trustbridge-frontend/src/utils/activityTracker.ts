@@ -40,16 +40,18 @@ export const trackActivity = (activity: Omit<Activity, 'id' | 'timestamp'>): Act
  */
 export const getAllActivities = async (): Promise<Activity[]> => {
   try {
-    console.log('🔗 Fetching activities from Mantle blockchain only...');
+    console.log('🔗 Fetching activities from blockchain...');
     
-    // Import mantleContractService to fetch from Mantle blockchain
-    const { mantleContractService } = await import('../services/mantleContractService');
+    // Mantle contract service removed - using Etherlink/Novax contracts instead
+    // TODO: Replace with Novax contract calls for Etherlink
+    console.warn('⚠️ Mantle service removed - activity fetching not available');
     
     const activities: Activity[] = [];
     
     try {
-      // Get all active listings from Mantle blockchain
-      const activeListings = await mantleContractService.getAllActiveListings();
+      // Mantle service removed - return empty activities for now
+      // const activeListings = await mantleContractService.getAllActiveListings();
+      const activeListings: any[] = [];
       console.log(`🔗 Found ${activeListings.length} active listings on Mantle blockchain`);
       
       // Convert listings to activities
@@ -162,13 +164,13 @@ export const getActivityStats = async () => {
 export const formatActivity = (activity: Activity): string => {
   switch (activity.type) {
     case 'sale':
-      return `${activity.assetName} sold for ${activity.price} TRUST`;
+      return `${activity.assetName} sold for ${activity.price} USDC`;
     case 'listing':
-      return `${activity.assetName} listed for ${activity.price} TRUST`;
+      return `${activity.assetName} listed for ${activity.price} USDC`;
     case 'unlisting':
       return `${activity.assetName} unlisted`;
     case 'offer':
-      return `Offer of ${activity.price} TRUST made on ${activity.assetName}`;
+      return `Offer of ${activity.price} USDC made on ${activity.assetName}`;
     case 'offer_accepted':
       return `Offer accepted for ${activity.assetName}`;
     case 'offer_rejected':

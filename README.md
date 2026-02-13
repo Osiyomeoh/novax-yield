@@ -1,21 +1,21 @@
-# TrustBridge Africa - Real-World Asset Tokenization Platform
+# Novax Yield - Trade Receivables Financing Platform
 
-**Real-World Asset Tokenization on Mantle Network**
+**Trade Receivables Tokenization on Etherlink - Connecting Africa & Asia**
 
-**Live Platform:** [tbafrica.xyz](https://tbafrica.xyz) | **Documentation:** [Documentation Page](https://tbafrica.xyz/documentation) | **One-Pager Pitch:** [View on Google Drive](https://drive.google.com/file/d/1hNhHUClXNU4i8NvwcMFX35VmI_VbwpSH/view?usp=sharing)
+**Live Platform:** [novaxyield.com](https://novaxyield.com) | **Documentation:** [Documentation Page](https://novaxyield.com/documentation) | **One-Pager Pitch:** [View on Google Drive](https://drive.google.com/file/d/1hNhHUClXNU4i8NvwcMFX35VmI_VbwpSH/view?usp=sharing)
 
 ---
 
 ## Quick Start
 
-**TrustBridge is built on Mantle Network** - an EVM Layer 2 blockchain optimized for real-world asset tokenization.
+**Novax Yield is built on Etherlink** - an EVM-compatible blockchain optimized for real-world asset tokenization and cross-border trade financing.
 
-### Why Mantle Network?
+### Why Etherlink?
 
 - **Low Gas Fees** - Perfect for fractional ownership and micro-investments
 - **High Throughput** - Handles thousands of asset tokenizations
 - **EVM Compatibility** - Seamless MetaMask integration
-- **Modular Architecture** - Ideal for scaling RWA tokenization globally
+- **Scalable Architecture** - Ideal for scaling RWA tokenization across Africa and Asia
 
 ### Installation
 
@@ -56,86 +56,100 @@ cd ../trustbridge-backend/contracts && npm install
    ```bash
    cd trustbridge-backend/contracts
    cp env.example .env
-   # Configure Mantle Network RPC and private keys
-   npx hardhat deploy --network mantle_sepolia
+   # Configure Etherlink Network RPC and private keys
+   npx hardhat deploy --network etherlink_testnet
    ```
 
 ---
 
 ## The Vision
 
-TrustBridge enables **anyone with a basic mobile phone** to tokenize real-world assets (farms, real estate, commodities) and access global investment opportunities, **without requiring smartphones, internet, traditional banks or crypto knowledge**.
+Novax Yield enables **exporters and importers** to access immediate liquidity from trade receivables (invoices) and **investors** to earn sustainable yields (8-12% APY) from financing cross-border trade between Africa and Asia.
 
 ### Mission
-**Democratize $1T+ in African real-world assets** via:
-- **Web Platform**: Accessible investment interface
-- **Mantle Network**: Low-cost EVM Layer 2 blockchain
-- **Smart Contracts**: Automated asset management and pool creation
-- **Real Yields**: Actual ROI from tokenized assets
+**Democratize $200B+ in African and Asian trade receivables** via:
+- **Trade Receivables Financing**: Tokenize invoices for immediate liquidity
+- **Etherlink Network**: Low-cost EVM blockchain for fast, cheap transactions
+- **Smart Contracts**: Automated pool creation, investment, and yield distribution
+- **Staking Vault**: Auto-deploy capital to pools with dynamic capacity management
+- **Real Yields**: 8-12% APY from actual trade receivables, not speculation
 
 ---
 
-## The Problem: Africa's Untapped Wealth
+## The Problem: Untapped Wealth in Africa & Asia
 
 ### **The Challenge**
-Africa holds **$1 trillion+ in "dead capital"** - assets that cannot be used as collateral, invested, or accessed by global markets:
+Africa and Asia hold **$2+ trillion in "dead capital"** - assets that cannot be used as collateral, invested, or accessed by global markets:
 
 1. **No Banking Infrastructure**
    - 65% of Africans are unbanked (400M+ people)
+   - 30%+ of Asians lack access to formal banking (1B+ people)
    - No credit history → No access to capital
    - Cash economy limits investment
 
 2. **Illiquid Assets**
-   - $350B in real estate owned but not tradeable
-   - $150B in agricultural land without deed registration
-   - Farmers can't prove ownership or asset value
+   - $350B+ in real estate owned but not tradeable (Africa)
+   - $500B+ in Asian real estate without liquidity
+   - $150B+ in agricultural land without deed registration
+   - $200B+ in Asian trade receivables waiting for financing
+   - Asset owners can't prove ownership or asset value
 
 3. **Traditional Banks Fail**
-   - Banks require credit history → excludes 65% of Africans
+   - Banks require credit history → excludes millions
    - High fees (5-15%) eat into small business margins
    - Slow processing (days/weeks) prevents agility
    - Geographic limitations (urban-focused branches)
    - Bureaucratic lending processes
 
 4. **Digital Divide**
-   - 60% don't have internet access
+   - 60% don't have internet access (Africa)
+   - 40% lack reliable internet (parts of Asia)
    - 70% use basic phones (not smartphones)
-   - No crypto knowledge or wallet infrastructure
+   - Limited crypto knowledge or wallet infrastructure
 
 5. **Limited Investment Access**
    - Local investors can't diversify globally
-   - International investors can't access African assets
+   - International investors can't access regional assets
    - Fragmented markets prevent liquidity
+   - Cross-border trade financing is complex and expensive
 
-### **The Solution: TrustBridge**
+### **The Solution: Novax Yield**
 
-TrustBridge **tokenizes** African real-world assets on Mantle Network, making them **investable, tradeable, and accessible** to global investors:
+Novax Yield **tokenizes trade receivables** (invoices) on Etherlink, enabling exporters to get paid immediately while investors earn sustainable yields from financing cross-border trade:
 
-#### **For Asset Owners (Farmers, Landowners, Property Owners)**
-- **Tokenize** real-world assets (farmland, real estate, equipment, infrastructure) on Mantle Network
-- **Access capital** by selling fractional ownership
-- **Earn ongoing yields** from asset-backed pool investments
-- **Set investable percentage** - Control how much of your asset can be tokenized
-- **Transparent ownership** - All transactions recorded on-chain
-- **Revenue reporting** - Submit periodic revenue reports for dividend distribution
+#### **For Exporters (Business Owners)**
+- **Tokenize Trade Receivables** - Convert unpaid invoices into liquid assets
+- **Access Immediate Capital** - Get paid upfront (typically 80-90% of invoice value)
+- **No Credit History Required** - On-chain verification replaces traditional banking
+- **Low Fees** - 2-3% platform fees vs 5-15% traditional factoring
+- **Fast Processing** - Days instead of weeks
+- **Global Access** - Reach international investors directly
+- **Transparent Process** - All transactions recorded on-chain
 
 #### **For Investors (Local & Global)**
-- **Diversify** portfolio with African agriculture, real estate, commodities, infrastructure
-- **Fractional ownership** of high-value real-world assets (invest as little as $1)
-- **Real yields** from actual asset performance, not speculation
-- **Global liquidity** on Mantle Network
-- **Transparent ownership** via immutable blockchain audit trail
-- **Real-time ROI** - Track your investment returns second-by-second
-- **AMC-managed pools** - Professional asset management and oversight
+- **Real Yields** - Earn 8-12% APY from actual trade receivables
+- **Fractional Investment** - Invest as little as $100 in high-value invoices
+- **Diversification** - Access Africa-Asia trade corridors
+- **Staking Vault** - Stake USDC for 8.5-12% APY with auto-deployment
+- **Auto-Compounding** - Reinvest yields automatically for higher returns
+- **Transparency** - All transactions recorded on-chain
+- **AMC-Managed** - Professional verification and oversight
 
-#### **Trust Economy Benefits**
-- **TRUST token** powers platform transactions
-- **Deflationary** tokenomics via burning
-- **Governance** through DAO voting
-- **Staking rewards** for token holders
-- **Universal value** across African markets
+#### **For Stakers**
+- **Stake USDC** - Deposit USDC in staking vault (not NVX)
+- **Tiered APY** - Choose from 4 tiers (Silver: 8.5%, Gold: 9.5%, Platinum: 10.5%, Diamond: 12%)
+- **Auto-Deployment** - Vault automatically deploys capital to receivable pools
+- **Auto-Compounding** - Monthly compounding for higher returns
+- **Dynamic Capacity** - Vault size managed based on deal flow
+- **Waitlist System** - Fair allocation when vault is full
 
-**Live Platform:** [tbafrica.xyz](https://tbafrica.xyz)
+#### **NVX Token Benefits**
+- **NVX Token** - Governance and utility token for the platform
+- **Staking Rewards** - Additional rewards for NVX stakers
+- **Governance** - Vote on platform proposals
+- **Fee Discounts** - Pay platform fees in NVX for discounts
+
+**Live Platform:** [novaxyield.com](https://novaxyield.com)
 
 ---
 
@@ -143,8 +157,8 @@ TrustBridge **tokenizes** African real-world assets on Mantle Network, making th
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                          TRUSTBRIDGE PLATFORM                               │
-│                      Built on Mantle Network                                │
+│                          NOVAX YIELD PLATFORM                               │
+│                      Built on Etherlink Network                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 
 ┌────────────────────────────────────────────────────────────────────────────┐
@@ -163,7 +177,7 @@ TrustBridge **tokenizes** African real-world assets on Mantle Network, making th
 │  ┌────────────────────────────────────────────────────────────┐            │
 │  │              NestJS Backend API                             │            │
 │  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  │            │
-│  │  │ Asset    │  │ AMC      │  │ ROI      │  │ Mantle   │  │            │
+│  │  │ Asset    │  │ AMC      │  │ ROI      │  │ Etherlink│  │            │
 │  │  │ Service  │  │ Pools    │  │ Calc     │  │ Service  │  │            │
 │  │  │          │  │ Service  │  │ Service  │  │          │  │            │
 │  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘  │            │
@@ -177,16 +191,18 @@ TrustBridge **tokenizes** African real-world assets on Mantle Network, making th
 └────────────────────────────────────────────────────────────────────────────┘
                            ↓
 ┌────────────────────────────────────────────────────────────────────────────┐
-│                    MANTLE NETWORK (EVM Layer 2)                            │
+│                    ETHERLINK NETWORK (EVM Compatible)                      │
 │                                                                              │
 │  ┌──────────────────────────────────────────────────────────────┐          │
 │  │  Smart Contracts (Solidity)                                   │          │
 │  │                                                               │          │
-│  │  • CoreAssetFactory:    RWA asset creation & management    │          │
-│  │  • PoolManager:          Investment pool creation & trading │          │
-│  │  • AMCManager:          Asset Management Company oversight  │          │
-│  │  • TrustToken:          Platform utility token (TRUST)     │          │
-│  │  • PoolToken:           ERC-20 tokens for pool investments  │          │
+│  │  • NovaxReceivableFactory: Trade receivable creation & verification│          │
+│  │  • NovaxPoolManager:      Investment pool creation & yield distribution│          │
+│  │  • NovaxStakingVault:      USDC staking vault with auto-deployment│          │
+│  │  • VaultCapacityManager:  Dynamic capacity management│          │
+│  │  • AutoCompounder:        Automatic yield reinvestment│          │
+│  │  • NVXToken:              Platform utility token (NVX)│          │
+│  │  • PoolToken:             ERC-20 tokens for pool investments│          │
 │  │                                                               │          │
 │  │  Features:                                                    │          │
 │  │  • Fractional ownership (18 decimals for micro-investments)  │          │
@@ -218,138 +234,153 @@ TrustBridge **tokenizes** African real-world assets on Mantle Network, making th
 
 ## Implemented Features - Production Ready
 
-### Real-World Asset (RWA) Tokenization
+### Trade Receivables Financing
 
-TrustBridge focuses exclusively on **Real-World Assets** - physical assets that generate real revenue and yield.
+Novax Yield focuses on **Trade Receivables** - unpaid invoices from cross-border trade between Africa and Asia that can be tokenized and financed.
 
-#### **Supported Asset Types**
-- **Agriculture**: Farmland, agribusiness, agricultural equipment
-- **Real Estate**: Commercial properties, residential buildings, land
-- **Infrastructure**: Roads, bridges, renewable energy projects
-- **Commodities**: Natural resources, mining assets
-- **Equipment**: Machinery, vehicles, industrial equipment
+#### **Complete Flow: From Invoice to Yield**
 
-#### **Asset Creation Flow**
 ```
-1. Asset owner connects MetaMask wallet
+1. EXPORTER CREATES RECEIVABLE
    ↓
-2. Navigate to "Create RWA Asset"
+   Exporter uploads invoice documents to IPFS
    ↓
-3. Enter asset details (type, location, value, size)
+   NovaxReceivableFactory.createReceivable()
    ↓
-4. Set investable percentage (how much can be tokenized)
+   Status: PENDING_VERIFICATION
+
+2. AMC VERIFIES RECEIVABLE
    ↓
-5. Upload legal documents to IPFS (deeds, photos, certificates)
+   AMC contacts importer off-chain
    ↓
-6. Submit asset for AMC approval
+   Importer approves invoice
    ↓
-7. Smart contract creates asset on Mantle Network
+   Legal contract signed (assignment to AMC)
    ↓
-8. AMC reviews and approves/rejects
+   NovaxReceivableFactory.verifyReceivable()
    ↓
-9. Approved assets added to investment pools
+   Status: VERIFIED (with risk score & APR)
+
+3. AMC CREATES POOL
    ↓
-10. Investors can now invest in tokenized assets
+   NovaxPoolManager.createPool()
+   ↓
+   VaultCapacityManager.recordDealVolume()
+   ↓
+   Pool created with target amount & APR
+   ↓
+   Status: ACTIVE
+
+4. CAPITAL DEPLOYMENT
+   ↓
+   Option A: Staking Vault Auto-Deploys
+   ├─ NovaxStakingVault.deployToPool()
+   └─ Capital automatically deployed from vault
+   ↓
+   Option B: Individual Investors
+   ├─ Investors invest USDC
+   └─ Receive pool tokens
+   ↓
+   Status: FUNDED
+
+5. EXPORTER GETS PAID
+   ↓
+   Exporter receives USDC immediately
+   ↓
+   (80-90% of invoice value)
+
+6. IMPORTER PAYS (90 days later)
+   ↓
+   Importer pays invoice amount + yield
+   ↓
+   AMC collects payment (on-chain or off-chain)
+   ↓
+   NovaxPoolManager.recordPayment()
+   ↓
+   Status: PAID
+
+7. YIELD DISTRIBUTION
+   ↓
+   NovaxPoolManager.distributeYield()
+   ↓
+   If vault invested: Yield sent to vault
+   ├─ Vault distributes to stakers proportionally
+   └─ Auto-compounding if enabled
+   ↓
+   If individual investors: Yield sent directly
+   ├─ USDC returned to investors
+   └─ Pool tokens burned
+   ↓
+   Status: CLOSED
 ```
 
 **Technical Implementation:**
-- **IPFS**: `PinataService` uploads documents → returns CID
-- **Smart Contracts**: `CoreAssetFactory.createRWAAsset()` creates on-chain asset
-- **Blockchain**: All asset data stored on Mantle Network
-- **MongoDB**: Stores asset metadata with on-chain asset ID
-- **Real-time Updates**: Direct blockchain queries for verification
-- **AMC Oversight**: Licensed Asset Management Companies verify and manage assets
+- **IPFS**: `PinataService` uploads invoice documents → returns CID
+- **Smart Contracts**: `NovaxReceivableFactory.createReceivable()` creates on-chain receivable
+- **Verification**: AMC verifies with `verifyReceivable()` setting risk score & APR
+- **Pool Creation**: `NovaxPoolManager.createPool()` creates investment pool
+- **Auto-Deployment**: `NovaxStakingVault.deployToPool()` automatically deploys capital
+- **Yield Distribution**: `NovaxPoolManager.distributeYield()` distributes returns
+- **Blockchain**: All transactions recorded on Etherlink Network
 
-#### **AMC Pool Management**
+### Staking Vault System
 
-**Pool Creation:**
-- Multiple RWAs bundled into single pool via `PoolManager.createPool()`
-- ERC-20 pool tokens created for fractional ownership
-- Supports simple pools and tranched pools (Senior/Junior)
-- Pool metadata stored on-chain
+#### **How Staking Works**
+1. **User Stakes USDC**: Deposit USDC in staking vault
+2. **Choose Tier**: Select from 4 tiers (Silver, Gold, Platinum, Diamond)
+3. **Auto-Deployment**: Vault automatically deploys capital to receivable pools
+4. **Yield Generation**: Pools generate 8-12% APY from receivables
+5. **Distribution**: Yield distributed proportionally to stakers
+6. **Auto-Compounding**: Monthly compounding if enabled
+7. **Unstake**: Withdraw after lock period expires
 
-**Investment Flow:**
-- Investor connects MetaMask wallet
-- Invests TRUST tokens in pool (minimum $1 investment)
-- Receives pool tokens proportional to investment
-- Investment tracked on-chain and in MongoDB
-- Real-time ROI calculation based on APY
+#### **Staking Tiers**
+| Tier | Lock Period | APY | Min Stake |
+|------|-------------|-----|-----------|
+| **Silver** | 30 days | 8.5% | $1,000 |
+| **Gold** | 90 days | 9.5% | $5,000 |
+| **Platinum** | 180 days | 10.5% | $10,000 |
+| **Diamond** | 365 days | 12% | $25,000 |
 
-**Yield Distribution:**
-- Asset owners submit revenue reports
-- AMC verifies and distributes dividends
-- Dividends distributed as TRUST tokens to investors
-- ROI automatically calculated and displayed
-- All transactions recorded on-chain
+#### **Capacity Management**
+- **Dynamic Cap**: Vault size = 3x monthly deal volume
+- **Auto-Deployment**: Capital automatically deployed to new pools
+- **Waitlist System**: When vault is full, new stakers join waitlist
+- **Waitlist APY**: 5% APY from DeFi while waiting
+- **Auto-Promotion**: Waitlist stakers promoted when capacity increases
 
-### Real Yield System
+#### **Auto-Compounding**
+- **Monthly Compounding**: Yield reinvested every 30 days
+- **Compound Formula**: A = P(1 + r/n)^(n*t)
+- **Higher Returns**: Compounding increases effective APY
+- **Example**: 8.5% APY with compounding = ~8.8% effective APY
 
-#### **How Investors Make Money**
-1. **Asset Revenue Generation**: Real-world assets (farms, real estate) generate actual revenue
-2. **Revenue Reporting**: Asset owners submit revenue reports to AMC
-3. **Verification**: AMC verifies reports and calculates dividends
-4. **Distribution**: Dividends distributed as TRUST tokens to investors
-5. **ROI Calculation**: Real-time ROI based on actual dividends received + projected APY
+### NVX Token Economy
 
-#### **Asset Owner Flow**
-1. **Tokenize Asset**: Create RWA asset on-chain
-2. **Set Investable %**: Define maximum percentage that can be tokenized
-3. **AMC Approval**: Asset reviewed and approved by AMC
-4. **Pool Creation**: Asset added to investment pool
-5. **Capital Received**: Receive TRUST tokens from tokenization
-6. **Revenue Reporting**: Submit periodic revenue reports
-7. **Dividend Distribution**: Dividends distributed to investors
-
-#### **Fraud Prevention**
-- On-chain ownership verification
-- Duplicate report detection
-- Amount and period validation
-- Historical consistency checks
-- Pattern detection algorithms
-
-### Trust Token Economy
-
-The **TRUST token** is the native utility token powering the entire TrustBridge ecosystem, creating a self-sustaining economy for African asset tokenization.
+The **NVX token** is the governance and utility token for the Novax Yield platform.
 
 #### **Tokenomics**
-- **Total Supply**: 1 Billion TRUST tokens
+- **Total Supply**: 1 Billion NVX tokens
 - **Distribution**: 
-  - 40% Community (rewards, staking, referrals)
-  - 25% Team & Advisors (vested 4 years)
-  - 20% Investors (vested 3 years)
-  - 10% Ecosystem Fund (AMCs, partnerships)
-  - 5% Liquidity & Reserves
-- **Deflationary**: 2% burn on every transaction
-- **Exchange**: TRUST token trading on Mantle Network
+  - 40% Community (rewards, staking, liquidity mining)
+  - 20% Team & Advisors (vested 4 years)
+  - 15% Investors (vested 3 years)
+  - 15% Ecosystem Fund (AMCs, partnerships)
+  - 5% Treasury Reserve
+  - 5% Liquidity Pool
 
 #### **Use Cases**
-1. **Platform Fees**: Pay for asset creation, trading, AMC fees
-2. **Staking**: Lock TRUST for rewards and priority access
-3. **Governance**: Vote on DAO proposals and platform decisions
-4. **Liquidity**: Provide liquidity in pools for trading rewards
-5. **AI Services**: Access AI-powered analytics and insights
-6. **Premium Features**: Unlock advanced portfolio tools
+1. **Governance**: Vote on platform proposals and decisions
+2. **Staking Rewards**: Additional NVX rewards for stakers
+3. **Fee Payment**: Pay platform fees in NVX (30% discount)
+4. **Liquidity Mining**: Provide liquidity to earn NVX
+5. **Investment Rewards**: Receive NVX when investing in pools
 
 #### **Governance (DAO)**
-- **Proposal System**: Any holder can submit proposals
-- **Voting**: Weighted by TRUST holdings
+- **Proposal System**: NVX holders can submit proposals
+- **Voting**: Weighted by NVX holdings
+- **Minimum Threshold**: 1,000 NVX to submit, 100 NVX to vote
 - **Execution**: Automated via smart contracts
-- **Proposals**: Fee changes, AMC additions, new features
-
-#### **Staking Rewards**
-- **Lock Periods**: 1, 3, 6, or 12 months
-- **APY**: 5-20% based on lock duration
-- **Bonus**: Higher rewards for longer locks
-- **Auto-Compounding**: Monthly reward distribution
-
-#### **Burning Mechanism**
-Every transaction burns 2% of TRUST tokens:
-- **Asset Tokenization**: Platform burns tokens on creation
-- **Pool Investments**: Burn on each investment
-- **Yield Distribution**: Burn on dividend payments
-- **Trading**: Burn on marketplace transactions
-
-**Result**: Supply decreases over time → **token appreciation** for holders
 
 ### AI-Powered Analytics
 
@@ -375,7 +406,7 @@ Every transaction burns 2% of TRUST tokens:
 - **Pools**: Investment pool statistics
 
 **Implementation:**
-- Backend aggregates from Mantle Network + MongoDB
+- Backend aggregates from Etherlink Network + MongoDB
 - HCS topic queries for asset count
 - Real-time updates via polling
 - Charts and visualizations in frontend
@@ -401,14 +432,14 @@ NestJS + MongoDB + JWT + Swagger
 ├── Asset Management Service
 ├── AMC Pool Management Service
 ├── USSD Handler Service
-├── Mantle Network Integration Layer
+├── Etherlink Network Integration Layer
 ├── IPFS Service (Pinata)
 ├── Google AI Service
 ├── Analytics Service
 └── Admin Management Service
 ```
 
-### **Blockchain (Mantle Network)**
+### **Blockchain (Etherlink Network)**
 ```typescript
 Ethers.js + Hardhat
 ├── Smart Contracts: CoreAssetFactory, PoolManager, AMCManager
@@ -451,17 +482,18 @@ Ethers.js + Hardhat
 
 ### Total Addressable Market (TAM)
 
-| Market Segment | Size | TrustBridge Capture |
-|----------------|------|---------------------|
-| **African Agriculture** | $150B+ | 0.1% = $150M |
-| **Real Estate** | $350B+ | 0.1% = $350M |
-| **Commodities** | $100B+ | 0.1% = $100M |
-| **Infrastructure** | $50B+ | 0.1% = $50M |
-| **TOTAL TAM** | **$650B+** | **$650M+** |
+| Market Segment | Size (Africa) | Size (Asia) | Total | Novax Yield Capture |
+|----------------|----------------|-------------|-------|---------------------|
+| **Agriculture** | $150B+ | $200B+ | $350B+ | 0.1% = $350M |
+| **Real Estate** | $350B+ | $500B+ | $850B+ | 0.1% = $850M |
+| **Commodities** | $100B+ | $150B+ | $250B+ | 0.1% = $250M |
+| **Infrastructure** | $50B+ | $100B+ | $150B+ | 0.1% = $150M |
+| **Trade Receivables** | $50B+ | $200B+ | $250B+ | 0.1% = $250M |
+| **TOTAL TAM** | **$700B+** | **$1.15T+** | **$1.85T+** | **$1.85B+** |
 
 ### Competitive Advantages
 
-| Feature | Traditional RWA | TrustBridge |
+| Feature | Traditional RWA | Novax Yield |
 |---------|----------------|-------------|
 | **Access** | Web3 savvy only | USSD + Web |
 | **Fees** | $50-200 per txn | $0.001 |
@@ -482,120 +514,189 @@ Ethers.js + Hardhat
 
 ## Complete User Flows
 
-### Asset Owner: "Farmer Ibrahim"
+### Exporter: "Export Company Ltd"
 
-**Scenario**: Ibrahim has a 5-hectare cashew farm in Lagos worth ₦10M ($12,500)
-
-**Flow**:
-```
-1. Visit tbafrica.xyz and connect MetaMask wallet
-   ↓
-2. Navigate to "Create RWA Asset"
-   ↓
-3. Enter asset details: 5 hectares, Lagos address, ₦10M value
-   ↓
-4. Set investable percentage: 50% (₦5M can be tokenized)
-   ↓
-5. Upload legal documents (deed, photos) → Stored on IPFS
-   ↓
-6. Submit asset for AMC approval
-   ↓
-7. Backend creates asset on Mantle via CoreAssetFactory
-   ↓
-8. Asset created on-chain representing the farm
-   ↓
-9. AMC reviews and approves asset
-   ↓
-10. Asset added to "West Africa Agriculture Pool"
-    ↓
-11. Pool tokens created, investors start buying
-    ↓
-12. Ibrahim receives TRUST tokens from tokenization
-    ↓
-13. Monthly revenue reports submitted → Dividends distributed
-    ↓
-14. Ibrahim checks portfolio: "My Assets: 1, Value: ₦10M, Earnings: ₦100K"
-```
-
-**Mantle Network Transactions**:
-- Asset creation: `CoreAssetFactory.createRWAAsset()`
-- Pool creation: `PoolManager.createPool()`
-- Investment: `PoolManager.invest()` (TRUST tokens → pool tokens)
-- Dividends: `AMCManager.distributeDividends()` (TRUST tokens to investors)
-
-### Investor: "Sarah from Lagos"
-
-**Scenario**: Sarah wants to invest $5,000 in African agriculture
+**Scenario**: Export company has $100,000 unpaid invoice from importer in Asia, needs immediate cash flow
 
 **Flow**:
 ```
-1. Visit tbafrica.xyz on laptop/phone
+1. Visit novaxyield.com and connect wallet (Privy/MetaMask)
    ↓
-2. Connect MetaMask wallet (Mantle Sepolia Testnet)
+2. Navigate to "Create Receivable"
    ↓
-3. Complete KYC verification
+3. Enter invoice details:
+   - Amount: $100,000
+   - Due Date: 90 days
+   - Importer: (off-chain, address can be zero)
    ↓
-4. Browse AMC pools → "West Africa Agriculture Pool"
+4. Upload invoice documents to IPFS:
+   - Invoice PDF
+   - Purchase order
+   - Shipping documents
+   - Legal contract (assignment to AMC)
    ↓
-5. View assets: 10 farms, total value $500K, 12% APY
+5. Submit receivable for verification
    ↓
-6. Click "Invest" → Enter $5,000 (or invest as little as $1)
+6. NovaxReceivableFactory.createReceivable() on-chain
    ↓
-7. Approve TRUST token spending
+7. Status: PENDING_VERIFICATION
    ↓
-8. Sign investment transaction in MetaMask
+8. AMC contacts importer off-chain
    ↓
-9. TRUST tokens deducted, pool tokens credited
+9. Importer approves invoice
    ↓
-10. Investment tracked on-chain and in MongoDB
+10. AMC verifies receivable:
+    - Risk Score: 20/100 (low risk)
+    - APR: 10% (1000 basis points)
     ↓
-11. Real-time ROI calculation starts immediately
+11. NovaxReceivableFactory.verifyReceivable()
     ↓
-12. Monthly dividends: $5,000 × 12% / 12 = $50
+12. Status: VERIFIED
     ↓
-13. Dividends distributed as TRUST tokens
+13. AMC creates pool:
+    - Target: $100,000
+    - APR: 10%
+    - Maturity: 90 days
     ↓
-14. Sarah views portfolio: "Pool Tokens: 1,000, APY: 12%, ROI: 3.5%, Earned: $150"
+14. NovaxPoolManager.createPool()
+    ↓
+15. Staking vault auto-deploys $100,000
+    ↓
+16. Exporter receives $90,000 USDC immediately
+    ↓
+17. 90 days later: Importer pays $100,000 + $2,466 yield
+    ↓
+18. Yield distributed to stakers
+    ↓
+19. Exporter checks: "Receivables: 1, Paid: $90,000, Status: Paid"
 ```
 
-**Mantle Network Transactions**:
-- Investment: `PoolManager.invest()` (TRUST → pool tokens)
-- Dividends: `AMCManager.distributeDividends()` (TRUST to investors)
-- All transactions recorded on-chain for transparency
+**Etherlink Network Transactions**:
+- Receivable creation: `NovaxReceivableFactory.createReceivable()`
+- Verification: `NovaxReceivableFactory.verifyReceivable()`
+- Pool creation: `NovaxPoolManager.createPool()`
+- Auto-deployment: `NovaxStakingVault.deployToPool()`
+- Payment: `NovaxPoolManager.recordPayment()`
+- Yield distribution: `NovaxPoolManager.distributeYield()`
+
+### Investor/Staker: "Sarah from Lagos"
+
+**Scenario**: Sarah wants to earn yield by staking $10,000 USDC
+
+**Flow**:
+```
+1. Visit novaxyield.com on laptop/phone
+   ↓
+2. Connect wallet (Privy/MetaMask)
+   ↓
+3. Complete KYC verification (DidIt)
+   ↓
+4. Navigate to "Staking Vault"
+   ↓
+5. View staking tiers:
+   - Silver: 30 days, 8.5% APY, $1,000 min
+   - Gold: 90 days, 9.5% APY, $5,000 min
+   - Platinum: 180 days, 10.5% APY, $10,000 min
+   - Diamond: 365 days, 12% APY, $25,000 min
+   ↓
+6. Select Platinum tier (10.5% APY, 180 days)
+   ↓
+7. Enter stake amount: $10,000 USDC
+   ↓
+8. Enable auto-compounding
+   ↓
+9. Approve USDC spending
+   ↓
+10. Sign stake transaction
+    ↓
+11. NovaxStakingVault.stake() on-chain
+    ↓
+12. $10,000 USDC staked
+    ↓
+13. Vault auto-deploys to receivable pools
+    ↓
+14. Sarah views dashboard:
+    - Staked: $10,000
+    - Tier: Platinum
+    - APY: 10.5%
+    - Lock Period: 180 days
+    - Auto-Compound: Enabled
+    - Projected Return (1 year): $11,100
+    ↓
+15. Monthly compounding:
+    - Month 1: $10,000 + $87.50 = $10,087.50
+    - Month 2: $10,087.50 + $88.26 = $10,175.76
+    - ... (compounding continues)
+    ↓
+16. After 180 days: Unstake available
+    ↓
+17. Unstake: Receive principal + yield
+    ↓
+18. Sarah receives: $10,525 USDC (5.25% for 6 months)
+```
+
+**Etherlink Network Transactions**:
+- Staking: `NovaxStakingVault.stake()`
+- Auto-deployment: `NovaxStakingVault.deployToPool()`
+- Yield distribution: `NovaxPoolManager.distributeYield()` → `NovaxStakingVault.receivePayment()`
+- Unstaking: `NovaxStakingVault.unstake()`
 
 ### AMC Admin: "Mr. Johnson"
 
-**Scenario**: Licensed AMC manager managing asset pools
+**Scenario**: Licensed AMC manager verifying receivables and managing pools
 
 **Flow**:
 ```
 1. Login to AMC Dashboard
    ↓
-2. Review pending assets (Ibrahim's farm)
+2. Review pending receivables
    ↓
-3. Verify documentation from IPFS
+3. Contact importer off-chain
    ↓
-4. Check legal compliance + valuation
+4. Verify invoice approval
    ↓
-5. Approve asset → Recorded on-chain
+5. Check legal contract (assignment to AMC)
    ↓
-6. Create pool "West Africa Agriculture Pool"
+6. Assess risk:
+   - Importer creditworthiness
+   - Trade history
+   - Invoice validity
    ↓
-7. Bundle 10 approved farms → $500K total value
+7. Set risk score: 20/100 (low risk)
    ↓
-8. Set APY: 12% annual
+8. Set APR: 10% (1000 basis points)
    ↓
-9. Create pool tokens (ERC-20) → Launch pool
+9. Verify receivable on-chain:
+    NovaxReceivableFactory.verifyReceivable()
    ↓
-10. Monitor performance: $50K invested, 3 investors
+10. Create pool:
+    - Target: $100,000
+    - APR: 10%
+    - Maturity: 90 days
     ↓
-11. Receive revenue reports from asset owners
+11. NovaxPoolManager.createPool()
     ↓
-12. Verify and distribute dividends: $500 TRUST to each investor
+12. VaultCapacityManager.recordDealVolume($100k)
     ↓
-13. All transactions recorded on-chain
+13. Monitor pool:
+    - Status: FUNDED (vault deployed)
+    - Exporter paid: $90,000
     ↓
-14. Generate reports for regulators
+14. 90 days later: Collect payment from importer
+    ↓
+15. Record payment on-chain:
+    NovaxPoolManager.recordPayment()
+    ↓
+16. Distribute yield:
+    NovaxPoolManager.distributeYield()
+    ↓
+17. Yield sent to staking vault
+    ↓
+18. Vault distributes to stakers
+    ↓
+19. Pool status: CLOSED
+    ↓
+20. Generate reports for regulators
 ```
 
 ---
@@ -603,9 +704,9 @@ Ethers.js + Hardhat
 ## Security & Compliance
 
 ### **Blockchain Security**
-- **On-Chain Audit Trail**: All transactions immutable on Mantle Network
+- **On-Chain Audit Trail**: All transactions immutable on Etherlink Network
 - **Smart Contracts**: Automated, audited business logic
-- **Multi-signature**: Critical operations require multiple approvals
+- **Access Control**: Role-based permissions (AMC, Admin, Operator)
 - **Block Explorer**: Real-time transaction verification
 
 ### **Platform Security**
@@ -626,21 +727,21 @@ Ethers.js + Hardhat
 ### **Current Status (Testnet)**
 | Metric | Value |
 |--------|-------|
-| **Platform** | tbafrica.xyz |
-| **Blockchain** | Mantle Sepolia Testnet (testnet only) |
+| **Platform** | novaxyield.com |
+| **Blockchain** | Etherlink Shadownet (testnet only) |
 | **Assets** | Test RWAs tokenized (test data only) |
 | **Users** | Test users (testnet) |
 | **Pools** | Test AMC pools (test data only) |
 | **Volume** | Test investments (no real money) |
 | **Uptime** | 99.9% |
-| **Gas Fees** | Ultra-low on Mantle L2 |
+| **Gas Fees** | Ultra-low on Etherlink |
 | **Status** | **Testnet with test data only - no real assets or real money** |
 
 ### **Technical Performance**
 | Metric | Value |
 |--------|-------|
 | **Transaction Speed** | ~2 seconds finality |
-| **Transaction Cost** | Ultra-low on Mantle L2 |
+| **Transaction Cost** | Ultra-low on Etherlink |
 | **Gas Fees** | Fraction of Ethereum mainnet |
 | **API Latency** | <500ms |
 | **Frontend Load** | <2s |
@@ -648,25 +749,50 @@ Ethers.js + Hardhat
 
 ---
 
-## Market Opportunity - Africa
+## Market Opportunity - Africa & Asia
 
 ### **Demographics**
+
+**Africa:**
 - **Population**: 1.4 billion people
 - **Unbanked**: 60% without bank accounts
 - **Mobile**: 80% own mobile phones
 - **USSD Usage**: 90% of mobile transactions
 
+**Asia:**
+- **Population**: 4.7 billion people
+- **Unbanked**: 30%+ without bank accounts (1B+ people)
+- **Mobile**: 85%+ own mobile phones
+- **Digital Payments**: Growing adoption of mobile wallets
+
 ### **Asset Classes**
+
+**Africa:**
 - **Agriculture**: $150B+ annual output
 - **Real Estate**: $350B+ property value
 - **Commodities**: $100B+ natural resources
 - **Infrastructure**: $50B+ projects needed
 
+**Asia:**
+- **Agriculture**: $200B+ annual output
+- **Real Estate**: $500B+ property value
+- **Commodities**: $150B+ natural resources
+- **Infrastructure**: $100B+ projects needed
+- **Trade Receivables**: $200B+ in cross-border trade financing
+
 ### **Regulatory Environment**
+
+**Africa:**
 - **Pro-Blockchain**: Nigeria, Ghana, Kenya, South Africa
 - **Financial Inclusion**: Governments driving bankless adoption
 - **RWA Frameworks**: Emerging tokenization regulations
 - **Tax Incentives**: Favorable for foreign investments
+
+**Asia:**
+- **Pro-Blockchain**: Singapore, Hong Kong, UAE, India, Philippines
+- **Financial Innovation**: Governments promoting fintech and blockchain
+- **RWA Frameworks**: Established and emerging tokenization regulations
+- **Trade Finance**: Supportive policies for cross-border trade
 
 ---
 
@@ -676,7 +802,7 @@ Ethers.js + Hardhat
 - **Backend API**: NestJS backend with MongoDB
 - **Frontend**: React + Vite application
 - **Database**: MongoDB Atlas
-- **Blockchain**: Mantle Sepolia Testnet (testnet only - no real assets)
+- **Blockchain**: Etherlink Shadownet (testnet only - no real assets)
 - **IPFS**: Pinata infrastructure
 - **Analytics**: Real-time blockchain data
 - **Status**: Platform operates with **test data only** - no real assets, real money, or real investments
@@ -684,20 +810,23 @@ Ethers.js + Hardhat
 ### **Smart Contracts Deployed (Testnet)**
 | Contract | Address | Purpose |
 |----------|---------|---------|
-| **CoreAssetFactory** | Deployed on Mantle Sepolia Testnet | RWA asset creation & management (test data only) |
-| **PoolManager** | Deployed on Mantle Sepolia Testnet | Investment pool creation & trading (test data only) |
-| **AMCManager** | Deployed on Mantle Sepolia Testnet | Asset Management Company oversight (test data only) |
-| **TrustToken** | Deployed on Mantle Sepolia Testnet | Platform utility token (TRUST) - test tokens only |
+| **NovaxReceivableFactory** | Deployed on Etherlink Shadownet | Trade receivables creation & verification (test data only) |
+| **NovaxPoolManager** | Deployed on Etherlink Shadownet | Investment pool creation & yield distribution (test data only) |
+| **NovaxStakingVault** | Deployed on Etherlink Shadownet | USDC staking vault with auto-deployment (test data only) |
+| **VaultCapacityManager** | Deployed on Etherlink Shadownet | Dynamic capacity management (test data only) |
+| **AutoCompounder** | Deployed on Etherlink Shadownet | Automatic yield reinvestment (test data only) |
+| **NVXToken** | Deployed on Etherlink Shadownet | Platform utility token (NVX) - test tokens only |
+| **MockUSDC** | Deployed on Etherlink Shadownet | Test USDC token for payments (test tokens only) |
 | **PoolToken** | Created per pool (testnet) | ERC-20 tokens for pool investments (test data only) |
 
-**Note**: All contracts are deployed on Mantle Sepolia Testnet. No real assets or real money are involved.
+**Note**: All contracts are deployed on Etherlink Shadownet. No real assets or real money are involved.
 
 ---
 
 ## Documentation & Resources
 
 ### **User Documentation**
-- **Getting Started**: [tbafrica.xyz/documentation](https://tbafrica.xyz/documentation)
+- **Getting Started**: [novaxyield.com/documentation](https://novaxyield.com/documentation)
 - **For Asset Owners**: Complete tokenization guide
 - **For Investors**: Investment walkthrough
 - **USSD Guide**: Mobile banking tutorial
@@ -705,17 +834,17 @@ Ethers.js + Hardhat
 ### **Developer Resources**
 - **API Docs**: [Swagger UI](https://trustbridge-backend.onrender.com/api-docs)
 - **GitHub**: [Source Code](https://github.com/Osiyomeoh/TrustBridgeAfrica)
-- **Mantle Network**: [Documentation](https://docs.mantle.xyz)
+- **Etherlink Network**: [Documentation](https://docs.etherlink.com)
 
 ---
 
 ## Partnerships
 
 ### **Blockchain**
-- **Mantle Network** - EVM Layer 2 blockchain
-- **MetaMask** - Primary wallet provider
+- **Etherlink Network** - EVM Compatible blockchain
+- **Privy** - Wallet provider (MetaMask + social login)
 - **Pinata** - IPFS storage partner
-- **Chainlink** - Oracle price feeds
+- **Chainlink** - Oracle price feeds (planned)
 
 ### **Financial Inclusion (Planned)**
 - **Africa's Talking** - USSD gateway integration (Planned)
@@ -735,7 +864,7 @@ Ethers.js + Hardhat
 ### Q1 2026 - Complete
 - Core RWA tokenization platform
 - AMC pool management system
-- Mantle Network integration
+- Etherlink Network integration
 - Analytics dashboard
 - Smart contract deployment
 - IPFS storage
@@ -754,16 +883,16 @@ Ethers.js + Hardhat
 
 ---
 
-## Why TrustBridge Wins
+## Why Novax Yield Wins
 
-### **1. First-Mover in African RWA Tokenization**
-No platform offers real-world asset tokenization on Mantle Network with real yields
+### **1. First-Mover in African & Asian Trade Receivables Financing**
+No platform offers trade receivables tokenization on Etherlink with real yields (8-12% APY), connecting Africa and Asia
 
 ### **2. Blockchain-Native Architecture**
-Built entirely on Mantle Network (EVM Layer 2) for speed & low cost
+Built entirely on Etherlink Network (EVM Compatible) for speed & low cost
 
 ### **3. Actual Market Need**
-60% of Africans are unbanked but own mobile phones → $650B untapped market
+60% of Africans and 30%+ of Asians are unbanked but own mobile phones → $1.85T+ untapped market
 
 ### **4. Regulatory Compliance**
 KYC/AML + AMC certification = institutional-ready
@@ -772,7 +901,7 @@ KYC/AML + AMC certification = institutional-ready
 Actual ROI from assets, not synthetic DeFi products
 
 ### **6. Scalable Technology**
-Handles millions of users on Mantle Network's scalable Layer 2 infrastructure
+Handles millions of users on Etherlink Network's scalable infrastructure
 
 ---
 
@@ -780,7 +909,7 @@ Handles millions of users on Mantle Network's scalable Layer 2 infrastructure
 
 ### Wallet Setup - MetaMask Required
 
-**MetaMask** is the wallet used by TrustBridge on Mantle Network. You'll need it to connect to the platform.
+**Privy** is the wallet provider used by Novax Yield. Connect with MetaMask or social login to access the platform.
 
 #### **Step 1: Install MetaMask Wallet**
 - **Chrome/Brave**: [Download MetaMask Extension](https://metamask.io/download/)
@@ -795,59 +924,54 @@ Handles millions of users on Mantle Network's scalable Layer 2 infrastructure
 5. Create password
 6. Wallet created!
 
-#### **Step 3: Add Mantle Sepolia Testnet**
-TrustBridge uses Mantle **Sepolia Testnet** for all transactions.
+#### **Step 3: Connect to Etherlink Shadownet**
+Novax Yield uses **Etherlink Shadownet** for all transactions.
 
-1. Open MetaMask
-2. Click network dropdown (top of extension)
-3. Click **"Add Network"** → **"Add a network manually"**
-4. Enter the following details:
-   - **Network Name**: Mantle Sepolia Testnet
-   - **RPC URL**: `https://rpc.sepolia.mantle.xyz`
-   - **Chain ID**: `5003`
-   - **Currency Symbol**: `MNT`
-   - **Block Explorer**: `https://explorer.sepolia.mantle.xyz`
-
-5. Click **"Save"**
-6. Mantle Sepolia added!
+1. Connect your wallet (MetaMask or social login via Privy)
+2. The platform will automatically connect to Etherlink Shadownet
+3. If using MetaMask, you may need to add the network:
+   - **Network Name**: Etherlink Shadownet
+   - **RPC URL**: `https://node.shadownet.etherlink.com`
+   - **Chain ID**: `127823`
+   - **Currency Symbol**: `XTZ`
+   - **Block Explorer**: `https://explorer.shadownet.etherlink.com`
 
 #### **Step 4: Get Free Test Tokens**
 You need test tokens to pay for transactions on Testnet:
 
-**Get Test MNT:**
-1. Visit [Mantle Faucet](https://faucet.sepolia.mantle.xyz)
-2. Enter your MetaMask wallet address
-3. Click **"Request Tokens"**
-4. Receive test MNT
+**Get Test XTZ (for gas):**
+1. Visit Etherlink faucet (if available)
+2. Enter your wallet address
+3. Request test tokens for gas fees
 
-**Get Test TRUST:**
-1. Connect wallet to TrustBridge platform
-2. Use the TRUST faucet (if available)
+**Get Test USDC:**
+1. Connect wallet to Novax Yield platform
+2. Use the USDC faucet (if available)
 3. Or request from admin
 
-#### **Step 5: Connect to TrustBridge**
-1. Visit [tbafrica.xyz](https://tbafrica.xyz)
-2. Click **"Connect Wallet"**
-3. Select **MetaMask**
-4. Approve connection in MetaMask popup
+#### **Step 5: Connect to Novax Yield**
+1. Visit [novaxyield.com](https://novaxyield.com)
+2. Click **"Connect Wallet"** or **"Sign In"**
+3. Choose MetaMask or social login (Google, email)
+4. Approve connection
 5. Connected!
 
 ---
 
 **For Developers**:
-1. Install MetaMask and add Mantle Sepolia Testnet
+1. Connect wallet to Etherlink Shadownet
 2. Get test tokens from faucet
 3. Clone repo: `git clone https://github.com/Osiyomeoh/TrustBridgeAfrica.git`
-4. Configure `.env` files with Mantle RPC and private keys
-5. Deploy contracts: `cd trustbridge-backend/contracts && npx hardhat deploy --network mantle_sepolia`
+4. Configure `.env` files with Etherlink RPC and private keys
+5. Deploy contracts: `cd trustbridge-backend/contracts && npx hardhat deploy --network etherlink_testnet`
 6. Run `npm run dev`
 
 **For Investors**:
-1. Setup MetaMask wallet (above)
-2. Add Mantle Sepolia Testnet
+1. Connect wallet (MetaMask or social login)
+2. Connect to Etherlink Shadownet
 3. Get test tokens
 4. Connect to platform
-5. Browse AMC pools and start investing
+5. Browse pools and start investing
 
 ---
 
@@ -866,7 +990,7 @@ You need test tokens to pay for transactions on Testnet:
 #### **Design Team**
 - **Blessing**
   - **Role**: Designer
-  - **Bio**: Creative designer crafting intuitive user experiences for TrustBridge Africa
+  - **Bio**: Creative designer crafting intuitive user experiences for Novax Yield
   - **Contact**: [samuelaleonomoh5@gmail.com](mailto:samuelaleonomoh5@gmail.com)
 
 ### **Contact Information**
@@ -875,7 +999,7 @@ You need test tokens to pay for transactions on Testnet:
 - **Business Partnerships**: [samuelaleonomoh5@gmail.com](mailto:samuelaleonomoh5@gmail.com)
 - **Technical Support**: [samuelaleonomoh5@gmail.com](mailto:samuelaleonomoh5@gmail.com)
 - **Media & Press**: [samuelaleonomoh5@gmail.com](mailto:samuelaleonomoh5@gmail.com)
-- **Website**: [tbafrica.xyz](https://tbafrica.xyz)
+- **Website**: [novaxyield.com](https://novaxyield.com)
 - **GitHub**: [github.com/Osiyomeoh/TrustBridgeAfrica](https://github.com/Osiyomeoh/TrustBridgeAfrica)
 
 ---
@@ -884,11 +1008,11 @@ You need test tokens to pay for transactions on Testnet:
 
 ### **IMPORTANT: Testnet Status**
 
-**CURRENT STATUS**: TrustBridge Africa is currently operating on **Mantle Sepolia Testnet** with **test data only**. **No real assets are being tokenized or traded on the platform at this time.** All assets, pools, investments, and transactions are for testing and demonstration purposes only.
+**CURRENT STATUS**: Novax Yield is currently operating on **Etherlink Shadownet** with **test data only**. **No real assets are being tokenized or traded on the platform at this time.** All assets, pools, investments, and transactions are for testing and demonstration purposes only.
 
 ### **Regulated Assets Disclosure**
 
-**TrustBridge Africa** is designed to operate a real-world asset (RWA) tokenization platform that would facilitate the tokenization and fractional ownership of physical assets including:
+**Novax Yield** is designed to operate a trade receivables financing platform that facilitates the tokenization and financing of cross-border trade invoices between Africa and Asia:
 
 - **Real Estate** (commercial and residential properties)
 - **Agricultural Assets** (farmland, agribusiness, agricultural equipment)
@@ -898,7 +1022,7 @@ You need test tokens to pay for transactions on Testnet:
 
 ### **Regulatory Status**
 
-**IMPORTANT DISCLOSURE**: When TrustBridge Africa transitions to mainnet and begins tokenizing real assets, the platform will involve **regulated assets** and will be subject to securities regulations, financial services regulations, and other applicable laws in various jurisdictions. **Currently, the platform operates on testnet with test data only and does not involve any real assets or regulated activities.**
+**IMPORTANT DISCLOSURE**: When Novax Yield transitions to mainnet and begins tokenizing real trade receivables, the platform will involve **regulated assets** and will be subject to securities regulations, financial services regulations, and other applicable laws in various jurisdictions. **Currently, the platform operates on testnet with test data only and does not involve any real assets or regulated activities.**
 
 #### **Key Regulatory Considerations**
 
@@ -918,13 +1042,14 @@ You need test tokens to pay for transactions on Testnet:
    - **Commodities**: Subject to commodity trading and resource extraction regulations
 
 4. **Cross-Border Considerations**
-   - Platform serves users across multiple African jurisdictions and globally
+   - Platform serves users across multiple African and Asian jurisdictions and globally
    - Compliance with **local regulations** in each jurisdiction where assets are located
    - Compliance with **investor jurisdiction regulations** where applicable
+   - **Trade Receivables**: Cross-border trade financing between Africa and Asia requires compliance with both regions
 
 ### **Compliance Measures**
 
-TrustBridge Africa is designed to implement the following compliance measures when operating on mainnet with real assets:
+Novax Yield is designed to implement the following compliance measures when operating on mainnet with real trade receivables:
 
 - **KYC/AML Procedures**: Will be required for all users before using the platform with real assets  
 - **AMC Oversight**: All tokenized assets will be reviewed and managed by licensed Asset Management Companies  
@@ -937,13 +1062,22 @@ TrustBridge Africa is designed to implement the following compliance measures wh
 
 ### **Jurisdictional Compliance**
 
-**Note**: The following compliance requirements will apply when TrustBridge Africa transitions to mainnet and begins tokenizing real assets:
+**Note**: The following compliance requirements will apply when Novax Yield transitions to mainnet and begins tokenizing real trade receivables:
 
+**Africa:**
 - **Nigeria**: Will operate in compliance with SEC regulations and financial services laws
 - **Ghana**: Will adhere to Securities and Exchange Commission requirements
 - **Kenya**: Will comply with Capital Markets Authority regulations
 - **South Africa**: Will adhere to Financial Sector Conduct Authority requirements
-- **Other Jurisdictions**: Platform expansion subject to local regulatory approval
+
+**Asia:**
+- **Singapore**: Will comply with Monetary Authority of Singapore (MAS) regulations
+- **Hong Kong**: Will adhere to Securities and Futures Commission requirements
+- **UAE**: Will comply with local financial services regulations
+- **India**: Will adhere to Securities and Exchange Board of India (SEBI) requirements
+- **Philippines**: Will comply with Securities and Exchange Commission regulations
+
+**Other Jurisdictions**: Platform expansion subject to local regulatory approval
 
 **Current Status**: Platform is on testnet only - no regulatory compliance required for test data.
 
@@ -961,23 +1095,23 @@ TrustBridge Africa is designed to implement the following compliance measures wh
 
 ### **Legal Disclaimer**
 
-**TESTNET STATUS**: TrustBridge Africa is currently operating on Mantle Sepolia Testnet with test data only. No real assets, real money, or real investments are involved. All transactions, assets, and pools are for testing and demonstration purposes only.
+**TESTNET STATUS**: Novax Yield is currently operating on Etherlink Shadownet with test data only. No real assets, real money, or real investments are involved. All transactions, assets, and pools are for testing and demonstration purposes only.
 
-**This platform is not intended to provide legal, financial, or investment advice. Users should consult with qualified legal and financial advisors before participating in asset tokenization or making investment decisions. TrustBridge Africa does not guarantee regulatory compliance in all jurisdictions and users are responsible for ensuring their participation complies with applicable laws in their jurisdiction.**
+**This platform is not intended to provide legal, financial, or investment advice. Users should consult with qualified legal and financial advisors before participating in asset tokenization or making investment decisions. Novax Yield does not guarantee regulatory compliance in all jurisdictions and users are responsible for ensuring their participation complies with applicable laws in their jurisdiction.**
 
 **When the platform transitions to mainnet with real assets, all applicable regulatory requirements will be implemented and enforced.**
 
 ### **Regulatory Updates**
 
-TrustBridge Africa is committed to maintaining compliance with evolving regulatory frameworks when operating on mainnet with real assets. For the latest regulatory information and compliance updates, please contact us at [samuelaleonomoh5@gmail.com](mailto:samuelaleonomoh5@gmail.com).
+Novax Yield (TrustBridge) is committed to maintaining compliance with evolving regulatory frameworks when operating on mainnet with real assets. For the latest regulatory information and compliance updates, please contact us at [samuelaleonomoh5@gmail.com](mailto:samuelaleonomoh5@gmail.com).
 
 ---
 
 **TrustBridge Africa** - *Where Real-World Assets Meet Blockchain Innovation*
 
-*Built on Mantle Network • Powered by Trust • Designed for Africa • Real Yields from Real Assets*
+*Built on Etherlink Network • Global Trading Platform • Connecting Asia & Africa to International Markets • Real Yields from Real Assets*
 
 ---
 
-© 2026 TrustBridge Africa. All rights reserved.  
+© 2026 Novax Yield (TrustBridge). All rights reserved.  
 **Live**: [tbafrica.xyz](https://tbafrica.xyz) | **Docs**: [Documentation](https://tbafrica.xyz/documentation)

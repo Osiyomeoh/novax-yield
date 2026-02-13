@@ -221,6 +221,65 @@ export class IPFSService {
   }
 
   /**
+   * Upload JSON data to IPFS using Pinata
+   */
+  async uploadJson(data: any, fileName?: string, metadata?: IPFSFileMetadata): Promise<IPFSUploadResult> {
+    try {
+      if (!this.pinataApiKey || !this.pinataSecretKey) {
+        throw new BadRequestException('Pinata credentials not configured');
+      }
+
+      const pinataMetadata = {
+        name: fileName || `json-${Date.now()}.json`,
+        keyvalues: {
+          type: 'json',
+          uploadTime: new Date().toISOString(),
+          ...(metadata || {})
+        }
+      };
+
+      const pinataOptions = {
+        cidVersion: 1
+      };
+
+      const response = await axios.post(
+        'https://api.pinata.cloud/pinning/pinJSONToIPFS',
+        {
+          pinataContent: data,
+          pinataMetadata,
+          pinataOptions
+        },
+        {
+          headers: {
+            'pinata_api_key': this.pinataApiKey,
+            'pinata_secret_api_key': this.pinataSecretKey,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      const { IpfsHash, PinSize } = response.data;
+      const ipfsUrl = `https://${this.pinataGatewayUrl}/ipfs/${IpfsHash}`;
+
+      this.logger.log(`JSON uploaded to IPFS: ${IpfsHash}`);
+
+      return {
+        cid: IpfsHash,
+        ipfsUrl,
+        pinSize: PinSize,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      this.logger.error('IPFS JSON upload failed:', error);
+      if (error.response) {
+        this.logger.error('Pinata API error:', error.response.data);
+        throw new BadRequestException(`IPFS JSON upload failed: ${error.response.data?.error?.details || error.response.data?.error || error.response.statusText}`);
+      }
+      throw new BadRequestException(`IPFS JSON upload failed: ${error.message}`);
+    }
+  }
+
+  /**
    * Unpin a file from IPFS using Pinata
    */
   async unpinFile(cid: string): Promise<boolean> {

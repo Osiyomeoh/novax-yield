@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument } from '../schemas/user.schema';
-import { MantleService } from '../mantle/mantle.service';
+// import { MantleService } from '../mantle/mantle.service'; // Removed - use Novax contracts for Etherlink
 import { NotificationsService } from '../notifications/notifications.service';
 import { GmailService } from '../services/gmail.service';
 
@@ -80,7 +80,7 @@ export class AMCService {
 
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
-    private readonly mantleService: MantleService,
+    // private readonly mantleService: MantleService, // Removed - use Novax contracts for Etherlink
     private readonly notificationsService: NotificationsService,
     private readonly gmailService: GmailService,
   ) {}
@@ -228,13 +228,14 @@ export class AMCService {
       const assetId = notificationDto.assetId;
       let asset;
       
-      try {
-        asset = await this.mantleService.getAsset(assetId);
-      } catch (error) {
-        this.logger.error(`Failed to get asset from blockchain: ${error.message}`);
-        // Try to get asset owner from database as fallback
-        throw new Error('Asset not found on blockchain');
-      }
+      // TODO: Replace with Novax contract calls for Etherlink
+      // try {
+      //   asset = await this.novaxService.getAsset(assetId);
+      // } catch (error) {
+      //   this.logger.error(`Failed to get asset from blockchain: ${error.message}`);
+      //   throw new Error('Asset not found on blockchain');
+      // }
+      throw new Error('MantleService removed - use Novax contracts for Etherlink');
 
       if (!asset) {
         throw new Error('Asset not found');

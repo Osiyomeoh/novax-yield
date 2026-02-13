@@ -157,10 +157,10 @@ const Auth: React.FC = () => {
             className="text-center"
           >
             <h1 className="text-4xl font-bold text-off-white mb-2">
-              TrustBridge
+              Novax Yield
             </h1>
             <p className="text-gray-300 dark:text-gray-300">
-              Universal Asset Protocol for Africa
+              Real-World Asset Tokenization Platform
             </p>
           </motion.div>
         </div>
@@ -183,7 +183,7 @@ const Auth: React.FC = () => {
             className="text-center text-gray-300 dark:text-gray-300 text-sm"
           >
             <p>
-              Secure • Transparent • African-Focused
+              Secure • Transparent • Global DeFi
             </p>
           </motion.div>
         </div>

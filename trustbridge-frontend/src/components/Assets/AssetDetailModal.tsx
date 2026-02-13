@@ -7,7 +7,6 @@ import Button from '../UI/Button';
 import { useToast } from '../../hooks/useToast';
 import { useWallet } from '../../contexts/WalletContext';
 import { usePrivy } from '@privy-io/react-auth';
-import { TrustTokenService } from '../../services/trust-token.service';
 import { marketplaceContractService } from '../../services/marketplace-contract.service';
 import { marketplaceV2Service } from '../../services/marketplaceV2Service';
 import { trackActivity } from '../../utils/activityTracker';
@@ -265,43 +264,11 @@ const AssetDetailModal: React.FC<AssetDetailModalProps> = ({ isOpen, onClose, as
         metadata: asset.metadata
       }, null, 2));
       
-      // Check if imageURI is missing - if so, fetch fresh from contract
+      // Check if imageURI is missing
       const hasImageURI = asset.imageURI || asset.displayImage || asset.image || asset.metadata?.image || asset.metadata?.imageURI;
       
-      if (!hasImageURI && asset.assetId) {
-        console.log('⚠️ Asset missing imageURI - fetching fresh from contract...');
-        // Fetch fresh asset data from contract
-        import('../../services/mantleContractService').then(({ mantleContractService }) => {
-          mantleContractService.getAsset(asset.assetId).then((freshAsset: any) => {
-            if (freshAsset && freshAsset.imageURI) {
-              console.log('✅ Fetched fresh imageURI from contract:', freshAsset.imageURI);
-              // Merge fresh asset data with existing asset
-              setAssetWithImage({
-                ...asset,
-                imageURI: freshAsset.imageURI,
-                displayImage: freshAsset.imageURI,
-                image: freshAsset.imageURI,
-                documentURI: freshAsset.documentURI || asset.documentURI,
-                metadata: {
-                  ...asset.metadata,
-                  image: freshAsset.imageURI,
-                  imageURI: freshAsset.imageURI,
-                  displayImage: freshAsset.imageURI
-                }
-              });
-            } else {
-              console.warn('⚠️ Fresh asset fetch did not return imageURI');
-              setAssetWithImage(asset);
-            }
-          }).catch((error: any) => {
-            console.warn('⚠️ Failed to fetch fresh asset data:', error.message);
-            setAssetWithImage(asset);
-          });
-        });
-      } else {
-        // Asset already has imageURI, use it as-is
-        setAssetWithImage(asset);
-      }
+      // Use asset as-is (Mantle contract service removed - using Novax/Etherlink)
+      setAssetWithImage(asset);
       
       console.log('🖼️ ========== END ASSET DETAIL MODAL ==========');
     } else {
@@ -708,7 +675,7 @@ const AssetDetailModal: React.FC<AssetDetailModalProps> = ({ isOpen, onClose, as
 
       toast({
         title: 'Offer Accepted!',
-        description: `You accepted the offer of ${offer.offerPrice} TRUST from ${offer.buyer.slice(0, 6)}...`,
+        description: `You accepted the offer of ${offer.offerPrice} USDC from ${offer.buyer.slice(0, 6)}...`,
         variant: 'default'
       });
 
@@ -755,7 +722,7 @@ const AssetDetailModal: React.FC<AssetDetailModalProps> = ({ isOpen, onClose, as
 
     toast({
       title: 'Offer Rejected',
-      description: `You rejected the offer of ${offer.offerPrice} TRUST`,
+      description: `You rejected the offer of ${offer.offerPrice} USDC`,
       variant: 'default'
     });
   };
@@ -812,7 +779,7 @@ const AssetDetailModal: React.FC<AssetDetailModalProps> = ({ isOpen, onClose, as
 
       toast({
         title: 'Offer Submitted!',
-        description: `Your offer of ${price} TRUST for ${asset.name} has been sent to the seller.`,
+        description: `Your offer of ${price} USDC for ${asset.name} has been sent to the seller.`,
         variant: 'default'
       });
 
@@ -846,13 +813,7 @@ const AssetDetailModal: React.FC<AssetDetailModalProps> = ({ isOpen, onClose, as
 
       const assetPrice = parseFloat(asset.price || asset.totalValue || '100');
       
-      // Note: TrustTokenService.hybridGetTrustTokenBalance was Hedera-specific
-      // TODO: Implement Mantle/EVM token balance check
-      // const buyerBalance = await TrustTokenService.hybridGetTrustTokenBalance(address);
-      
-      // if (buyerBalance < assetPrice) {
-      //   throw new Error(`Insufficient TRUST tokens. You need ${assetPrice} TRUST but only have ${buyerBalance} TRUST.`);
-      // }
+      // Note: Token balance check removed - using USDC on Etherlink
 
       const royaltyPercentage = parseFloat(asset.royaltyPercentage || asset.metadata?.royaltyPercentage || '0');
       
@@ -880,10 +841,10 @@ const AssetDetailModal: React.FC<AssetDetailModalProps> = ({ isOpen, onClose, as
         sellerAmount: sellerAmount
       });
 
-      // STEP 1: Transfer TRUST tokens to seller
+      // STEP 1: Transfer USDC to seller (Trust Token removed)
       toast({
         title: 'Processing Payment...',
-        description: `Sending ${sellerAmount} TRUST to seller`,
+        description: `Sending ${sellerAmount} USDC to seller`,
         variant: 'default'
       });
 
@@ -916,7 +877,7 @@ const AssetDetailModal: React.FC<AssetDetailModalProps> = ({ isOpen, onClose, as
       toast({
         title: 'Purchase Successful! 🎉',
         description: royaltyAmount > 0 
-          ? `You've successfully purchased ${asset.name}! ${royaltyPercentage}% royalty (${royaltyAmount} TRUST) was sent to the creator.`
+          ? `You've successfully purchased ${asset.name}! ${royaltyPercentage}% royalty (${royaltyAmount} USDC) was sent to the creator.`
           : `You've successfully purchased ${asset.name}!`,
         variant: 'default'
       });
@@ -1208,7 +1169,7 @@ const AssetDetailModal: React.FC<AssetDetailModalProps> = ({ isOpen, onClose, as
                       <span className="text-3xl font-bold text-primary-blue">
                         {asset.price || asset.totalValue || '100'}
                       </span>
-                      <span className="text-lg text-primary-blue-light">TRUST</span>
+                      <span className="text-lg text-primary-blue-light">USDC</span>
                     </div>
                     <p className="text-xs text-gray-400 mt-1">
                       ≈ ${parseFloat(asset.price || asset.totalValue || '100') * 0.01} USD
@@ -1478,7 +1439,7 @@ const AssetDetailModal: React.FC<AssetDetailModalProps> = ({ isOpen, onClose, as
                             <div className="flex items-center justify-between mb-2">
                               <div>
                                 <p className="text-sm font-bold text-primary-blue">
-                                  {offer.offerPrice} TRUST
+                                  {offer.offerPrice} USDC
                                 </p>
                                 <p className="text-xs text-gray-400">
                                   from {offer.buyer.slice(0, 6)}...{offer.buyer.slice(-4)}
@@ -1613,7 +1574,7 @@ const AssetDetailModal: React.FC<AssetDetailModalProps> = ({ isOpen, onClose, as
                             Purchasing...
                           </>
                         ) : isListed ? (
-                          `Buy for ${asset.price || asset.totalValue || '100'} TRUST`
+                          `Buy for ${asset.price || asset.totalValue || '100'} USDC`
                         ) : (
                           'Not Listed for Sale'
                         )}
@@ -1665,7 +1626,7 @@ const AssetDetailModal: React.FC<AssetDetailModalProps> = ({ isOpen, onClose, as
                 <p className="text-lg font-semibold text-off-white">{asset.name}</p>
                 {isListed && (
                   <p className="text-sm text-gray-400 mt-2">
-                    Current Price: <span className="text-primary-blue font-medium">{asset.price || '100'} TRUST</span>
+                    Current Price: <span className="text-primary-blue font-medium">{asset.price || '100'} USDC</span>
                   </p>
                 )}
               </div>
@@ -1673,7 +1634,7 @@ const AssetDetailModal: React.FC<AssetDetailModalProps> = ({ isOpen, onClose, as
               {/* Offer Price Input */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Offer Price (TRUST)
+                  Offer Price (USDC)
                 </label>
                 <input
                   type="number"
@@ -1714,7 +1675,7 @@ const AssetDetailModal: React.FC<AssetDetailModalProps> = ({ isOpen, onClose, as
               {/* Summary */}
               <div className="bg-primary-blue/10 border border-primary-blue/30 rounded-lg p-4">
                 <p className="text-sm text-gray-300">
-                  Your offer of <span className="text-primary-blue font-bold">{offerPrice || '0'} TRUST</span> will be valid for{' '}
+                  Your offer of <span className="text-primary-blue font-bold">{offerPrice || '0'} USDC</span> will be valid for{' '}
                   <span className="text-primary-blue font-bold">{offerDuration} days</span>.
                 </p>
                 <p className="text-xs text-gray-400 mt-2">

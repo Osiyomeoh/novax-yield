@@ -23,13 +23,17 @@ import {
 } from 'lucide-react';
 // Card components removed - using direct div styling to match Centrifuge
 import Button from '../UI/Button';
+import { ProgressBar } from '../UI/ProgressBar';
+import { StatusBadge } from '../UI/StatusBadge';
+import { InvestmentCalculator } from '../UI/InvestmentCalculator';
 import { useToast } from '../../hooks/useToast';
 import { useWallet } from '../../contexts/PrivyWalletContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { mantleContractService } from '../../services/mantleContractService';
+import { novaxContractService } from '../../services/novaxContractService';
 import { ethers } from 'ethers';
-import { getContractAddress } from '../../config/contracts';
-import PoolManagerABI from '../../contracts/PoolManager.json';
+import { novaxContractAddresses } from '../../config/contracts';
+import NovaxPoolManagerABI from '../../contracts/NovaxPoolManager.json';
 
 interface PoolDetail {
   poolId: string;
@@ -50,15 +54,8 @@ interface PoolDetail {
     maturityDate?: string;
     tradeDateQuantity?: number;
   }>;
-  tranches: {
-    senior: { percentage: number; apy: number };
-    junior: { percentage: number; apy: number };
-  };
-  hasTranches?: boolean;
-  seniorTrancheId?: string;
-  juniorTrancheId?: string;
-  mantlePoolId?: string;
-  hederaContractId?: string;
+  // Note: Novax pools don't have tranches - they're single-asset pools
+  // Note: Novax pools use poolId directly (no separate IDs)
   createdAt: string;
   launchedAt?: string;
   metadata?: {
@@ -71,8 +68,7 @@ interface PoolDetail {
     investmentManager?: string;
     fundAdministrator?: string;
     auditor?: string;
-    seniorTrancheId?: string;
-    juniorTrancheId?: string;
+    // Note: Novax pools don't have tranches
   };
 }
 
@@ -84,12 +80,13 @@ interface PoolDetailPageProps {
 const PoolDetailPage: React.FC<PoolDetailPageProps> = ({ poolId, onBack }) => {
   const { toast } = useToast();
   const { address, isConnected, signer, provider } = useWallet();
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'invest' | 'redeem' | 'pending'>('invest');
+  const [activeTab, setActiveTab] = useState<'invest' | 'redeem' | 'sell' | 'pending'>('invest');
   const [pool, setPool] = useState<PoolDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [userHoldings, setUserHoldings] = useState(0);
-  const [userInvestment, setUserInvestment] = useState(0); // Total TRUST invested
+  const [userInvestment, setUserInvestment] = useState(0); // Total USDC invested
   const [projectedInterest, setProjectedInterest] = useState(0); // Projected annual interest
   const [projectedROI, setProjectedROI] = useState<{
     projected: {
@@ -107,7 +104,18 @@ const PoolDetailPage: React.FC<PoolDetailPageProps> = ({ poolId, onBack }) => {
   } | null>(null);
   const [investmentAmount, setInvestmentAmount] = useState('');
   const [redeemAmount, setRedeemAmount] = useState('');
-  const [selectedTranche, setSelectedTranche] = useState<'senior' | 'junior'>('senior');
+  // Marketplace listing state
+  const [marketplaceListings, setMarketplaceListings] = useState<any[]>([]);
+  const [loadingListings, setLoadingListings] = useState(false);
+  const [listingForm, setListingForm] = useState({
+    amount: '',
+    pricePerToken: '',
+    minPurchase: '',
+    maxPurchase: '',
+    deadline: '' // Days from now
+  });
+  const [poolTokenAddress, setPoolTokenAddress] = useState<string | null>(null);
+  // Note: Novax pools don't have tranches - removed tranche selection
   const [isRefreshing, setIsRefreshing] = useState(false);
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [investmentTimestamp, setInvestmentTimestamp] = useState<Date | null>(null);
@@ -125,7 +133,7 @@ const PoolDetailPage: React.FC<PoolDetailPageProps> = ({ poolId, onBack }) => {
     };
   } | null>(null);
   
-  // Generate sample performance data (30 days)
+  // Performance data - fetch from contracts/backend
   const performanceData = React.useMemo(() => {
     const days = 30;
     const data = [];
@@ -308,6 +316,170 @@ const PoolDetailPage: React.FC<PoolDetailPageProps> = ({ poolId, onBack }) => {
     }
   }, [pool, isConnected, address]);
 
+  // Fetch marketplace listings when pool is loaded
+  useEffect(() => {
+    if (pool && poolId) {
+      fetchMarketplaceListings();
+    }
+  }, [pool, poolId]);
+
+  // Fetch marketplace listings for this pool
+  const fetchMarketplaceListings = async () => {
+    if (!pool || !poolId) return;
+    
+    try {
+      setLoadingListings(true);
+      const listings = await novaxContractService.getPoolListings(poolId);
+      setMarketplaceListings(listings);
+      console.log('✅ Fetched marketplace listings:', listings.length);
+    } catch (error: any) {
+      console.error('Failed to fetch marketplace listings:', error);
+      setMarketplaceListings([]);
+    } finally {
+      setLoadingListings(false);
+    }
+  };
+
+  // Handle creating a marketplace listing
+  const handleCreateListing = async () => {
+    if (!isConnected || !address || !signer || !pool || !poolTokenAddress) {
+      toast({
+        title: 'Wallet Not Connected',
+        description: 'Please connect your wallet to create a listing',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    const amount = parseFloat(listingForm.amount);
+    const pricePerToken = parseFloat(listingForm.pricePerToken);
+    const minPurchase = parseFloat(listingForm.minPurchase || '0');
+    const maxPurchase = parseFloat(listingForm.maxPurchase || '0');
+    const deadlineDays = parseFloat(listingForm.deadline || '0');
+
+    if (!amount || amount <= 0 || amount > userHoldings) {
+      toast({
+        title: 'Invalid Amount',
+        description: `Please enter a valid amount between 0 and ${userHoldings.toFixed(2)}`,
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (!pricePerToken || pricePerToken <= 0) {
+      toast({
+        title: 'Invalid Price',
+        description: 'Please enter a valid price per token',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    try {
+      if (provider && signer) {
+        novaxContractService.initialize(signer, provider);
+      }
+
+      const poolIdBytes32 = poolId.startsWith('0x') && poolId.length === 66
+        ? poolId
+        : ethers.id(poolId);
+
+      const amountInWei = ethers.parseUnits(amount.toString(), 18); // PoolToken has 18 decimals
+      const priceInWei = ethers.parseUnits(pricePerToken.toString(), 6); // Price in USDC (6 decimals)
+      const minPurchaseInWei = minPurchase > 0 ? ethers.parseUnits(minPurchase.toString(), 18) : 0n;
+      const maxPurchaseInWei = maxPurchase > 0 ? ethers.parseUnits(maxPurchase.toString(), 18) : 0n;
+      const deadline = deadlineDays > 0 
+        ? Math.floor(Date.now() / 1000) + (deadlineDays * 24 * 60 * 60)
+        : 0;
+
+      toast({
+        title: 'Creating Listing',
+        description: 'Please approve the transaction in your wallet...',
+        variant: 'default'
+      });
+
+      const result = await novaxContractService.createListing(
+        poolTokenAddress,
+        poolIdBytes32,
+        amountInWei,
+        priceInWei,
+        minPurchaseInWei,
+        maxPurchaseInWei,
+        deadline
+      );
+
+      toast({
+        title: 'Listing Created',
+        description: `Successfully created listing. Transaction: ${result.txHash.substring(0, 10)}...`,
+        variant: 'default'
+      });
+
+      // Reset form
+      setListingForm({
+        amount: '',
+        pricePerToken: '',
+        minPurchase: '',
+        maxPurchase: '',
+        deadline: ''
+      });
+
+      // Refresh listings
+      await fetchMarketplaceListings();
+    } catch (error: any) {
+      console.error('Failed to create listing:', error);
+      toast({
+        title: 'Listing Failed',
+        description: error.message || 'Failed to create listing. Please try again.',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  // Handle buying tokens from marketplace
+  const handleBuyFromListing = async (listingId: string, amount: number) => {
+    if (!isConnected || !address || !signer) {
+      toast({
+        title: 'Wallet Not Connected',
+        description: 'Please connect your wallet to buy tokens',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    try {
+      if (provider && signer) {
+        novaxContractService.initialize(signer, provider);
+      }
+
+      const amountInWei = ethers.parseUnits(amount.toString(), 18);
+
+      toast({
+        title: 'Processing Purchase',
+        description: 'Please approve the transaction in your wallet...',
+        variant: 'default'
+      });
+
+      const result = await novaxContractService.buyTokens(listingId, amountInWei);
+
+      toast({
+        title: 'Purchase Successful',
+        description: `Successfully purchased ${amount} tokens. Transaction: ${result.txHash.substring(0, 10)}...`,
+        variant: 'default'
+      });
+
+      // Refresh listings and holdings
+      await fetchMarketplaceListings();
+      await fetchUserHoldings();
+    } catch (error: any) {
+      console.error('Failed to buy tokens:', error);
+      toast({
+        title: 'Purchase Failed',
+        description: error.message || 'Failed to purchase tokens. Please try again.',
+        variant: 'destructive'
+      });
+    }
+  };
+
   const fetchPoolDetails = async () => {
     let loadingTimeout: NodeJS.Timeout | null = null;
     
@@ -358,17 +530,16 @@ const PoolDetailPage: React.FC<PoolDetailPageProps> = ({ poolId, onBack }) => {
       // Fallback: Fetch directly from blockchain if API failed or not available
       if (!poolData) {
         console.log('🔍 Fetching pool directly from blockchain...');
-        const poolManagerAddress = getContractAddress('POOL_MANAGER');
+        const poolManagerAddress = novaxContractAddresses.NOVAX_POOL_MANAGER;
         const poolIdBytes32 = poolId.startsWith('0x') && poolId.length === 66
           ? poolId
           : ethers.id(poolId);
         
         // Use multiple RPC endpoints with fallback
         const rpcEndpoints = [
-          import.meta.env.VITE_MANTLE_TESTNET_RPC_URL,
-          'https://mantle-rpc.publicnode.com',
-          'https://mantle.drpc.org',
-          'https://rpc.sepolia.mantle.xyz',
+          import.meta.env.VITE_RPC_URL,
+          'https://node.shadownet.etherlink.com',
+          'https://node.mainnet.etherlink.com',
         ].filter(Boolean);
         
         let readOnlyProvider: ethers.Provider | null = null;
@@ -408,9 +579,8 @@ const PoolDetailPage: React.FC<PoolDetailPageProps> = ({ poolId, onBack }) => {
           minimumInvestment: 100,
           totalInvestors: 0,
           assets: [],
-          hasTranches: poolInfo[9] || poolInfo.hasTranches || false,
-          hederaContractId: poolId,
-          mantlePoolId: poolId,
+          // Note: Novax pools don't have tranches
+          // Note: Novax pools use poolId directly
         };
         
         console.log('✅ Pool data fetched from blockchain');
@@ -419,62 +589,8 @@ const PoolDetailPage: React.FC<PoolDetailPageProps> = ({ poolId, onBack }) => {
       if (poolData) {
         const data = poolData;
         
-        // Fetch tranche IDs from blockchain if not in API response
-        let seniorTrancheId = data.seniorTrancheId || data.metadata?.seniorTrancheId;
-        let juniorTrancheId = data.juniorTrancheId || data.metadata?.juniorTrancheId;
-        const hasTranches = data.hasTranches || data.tranches?.length > 0;
-        const onChainPoolId = data.mantlePoolId || data.metadata?.mantlePoolId || data.hederaContractId || poolId;
-        
-        // If pool has tranches but IDs are missing, fetch from blockchain
-        if (hasTranches && onChainPoolId && (!seniorTrancheId || !juniorTrancheId)) {
-          try {
-            console.log('🔍 Fetching tranche IDs from blockchain...');
-            const poolManagerAddress = getContractAddress('POOL_MANAGER');
-            const poolIdBytes32 = onChainPoolId.startsWith('0x') && onChainPoolId.length === 66
-              ? onChainPoolId
-              : ethers.id(onChainPoolId);
-            
-            const readOnlyProvider = provider || new ethers.JsonRpcProvider(import.meta.env.VITE_MANTLE_TESTNET_RPC_URL || 'https://rpc.sepolia.mantle.xyz');
-            const poolManagerContract = new ethers.Contract(
-              poolManagerAddress,
-              ["function getPool(bytes32) external view returns (bytes32,address,string,string,uint256,uint256,uint256,uint256,bool,bool,uint256,bytes32[],bytes32[])"],
-              readOnlyProvider
-            );
-            
-            const poolInfo = await poolManagerContract.getPool(poolIdBytes32);
-            const tranchesArray = poolInfo[12] || poolInfo.tranches || [];
-            
-            if (tranchesArray.length > 0) {
-              // Fetch tranche details to determine which is senior/junior
-              for (let i = 0; i < tranchesArray.length; i++) {
-                const trancheId = tranchesArray[i];
-                try {
-                  const getTrancheABI = ["function getTranche(bytes32) external view returns (bytes32,uint8,string,address,uint256,uint256,uint256,uint256,bool)"];
-                  const trancheContract = new ethers.Contract(poolManagerAddress, getTrancheABI, readOnlyProvider);
-                  const trancheInfo = await trancheContract.getTranche(trancheId);
-                  const trancheType = Number(trancheInfo[1] || trancheInfo.trancheType || 0);
-                  
-                  if (trancheType === 0 && !seniorTrancheId) {
-                    seniorTrancheId = trancheId;
-                  } else if (trancheType === 1 && !juniorTrancheId) {
-                    juniorTrancheId = trancheId;
-                  }
-                } catch (error) {
-                  console.warn(`Failed to fetch tranche ${i} details:`, error);
-                  // Fallback: use order (first = senior, second = junior)
-                  if (i === 0 && !seniorTrancheId) {
-                    seniorTrancheId = trancheId;
-                  } else if (i === 1 && !juniorTrancheId) {
-                    juniorTrancheId = trancheId;
-                  }
-                }
-              }
-              console.log('✅ Fetched tranche IDs from blockchain:', { seniorTrancheId, juniorTrancheId });
-            }
-          } catch (error) {
-            console.warn('Failed to fetch tranche IDs from blockchain:', error);
-          }
-        }
+        // Note: Novax pools don't have tranches - they're single-asset pools
+        const onChainPoolId = poolId; // Novax pools use poolId directly
         
         setPool({
           poolId: data.poolId || data._id,
@@ -495,15 +611,8 @@ const PoolDetailPage: React.FC<PoolDetailPageProps> = ({ poolId, onBack }) => {
             maturityDate: asset.maturityDate || '-',
             tradeDateQuantity: asset.tradeDateQuantity || asset.value || 0
           })),
-          tranches: {
-            senior: { percentage: 70, apy: 8 },
-            junior: { percentage: 30, apy: 15 }
-          },
-          hasTranches: hasTranches,
-          seniorTrancheId: seniorTrancheId,
-          juniorTrancheId: juniorTrancheId,
-          mantlePoolId: onChainPoolId,
-          hederaContractId: data.hederaContractId || onChainPoolId, // On-chain poolId (bytes32)
+          // Note: Novax pools don't have tranches
+          // Note: Novax pools use poolId directly
           createdAt: data.createdAt,
           launchedAt: data.launchedAt,
           metadata: {
@@ -517,8 +626,7 @@ const PoolDetailPage: React.FC<PoolDetailPageProps> = ({ poolId, onBack }) => {
             investmentManager: data.metadata?.investmentManager || 'TrustBridge Asset Management',
             fundAdministrator: data.metadata?.fundAdministrator || 'TrustBridge Services Ltd',
             auditor: data.metadata?.auditor || 'TrustBridge Audit Partners',
-            seniorTrancheId: seniorTrancheId,
-            juniorTrancheId: juniorTrancheId
+            // Note: Novax pools don't have tranches
           }
         });
       } else {
@@ -550,8 +658,8 @@ const PoolDetailPage: React.FC<PoolDetailPageProps> = ({ poolId, onBack }) => {
     
     try {
       console.log('🔍 Fetching user holdings for:', address);
-      const poolManagerAddress = getContractAddress('POOL_MANAGER');
-      const onChainPoolId = pool.hederaContractId || pool.mantlePoolId;
+      const poolManagerAddress = novaxContractAddresses.NOVAX_POOL_MANAGER;
+      const onChainPoolId = poolId; // Novax pools use poolId directly
       
       if (!onChainPoolId || !poolManagerAddress) {
         console.warn('⚠️ Missing pool ID or manager address:', { onChainPoolId, poolManagerAddress });
@@ -563,224 +671,39 @@ const PoolDetailPage: React.FC<PoolDetailPageProps> = ({ poolId, onBack }) => {
         ? onChainPoolId
         : ethers.id(onChainPoolId);
       
-      console.log('📋 Pool info:', { poolIdBytes32, hasTranches: pool.hasTranches, seniorTrancheId: pool.seniorTrancheId, juniorTrancheId: pool.juniorTrancheId });
+      console.log('📋 Pool info:', { poolIdBytes32 });
       
-      // Create contract instance
-      const getUserSharesABI = [
-        "function getUserShares(bytes32 _poolId, address _user) external view returns (uint256)",
-        "function getUserTrancheShares(bytes32 _trancheId, address _user) external view returns (uint256)",
-        "function getPool(bytes32) external view returns (bytes32,address,string,string,uint256,uint256,uint256,uint256,bool,bool,uint256,bytes32[],bytes32[])"
-      ];
+      // Create contract instance for Novax pools (no tranches)
+      const readOnlyProvider = provider || new ethers.JsonRpcProvider(import.meta.env.VITE_RPC_URL || 'https://node.shadownet.etherlink.com');
       
-      const readOnlyProvider = provider || new ethers.JsonRpcProvider(import.meta.env.VITE_MANTLE_TESTNET_RPC_URL || 'https://rpc.sepolia.mantle.xyz');
-      const poolManagerContract = new ethers.Contract(
-        poolManagerAddress,
-        getUserSharesABI,
-        readOnlyProvider
-      );
+      // Use Novax contract service to get pool token balance
+      const poolData = await novaxContractService.getPool(poolIdBytes32);
+      const poolTokenAddress = poolData.poolToken;
+      setPoolTokenAddress(poolTokenAddress); // Store for marketplace listings
       
-      // First, ALWAYS check on-chain if pool has tranches (more reliable than API state)
-      let hasTranchesOnChain = false;
-      let tranchesArray: string[] = [];
-      
-      try {
-        console.log('🔍 Checking pool on-chain for tranches...');
-        const poolInfo = await poolManagerContract.getPool(poolIdBytes32);
-        // getPool returns: (poolId, creator, name, description, totalValue, totalShares, targetValue, minimumInvestment, hasTranches, isActive, createdAt, assets[], tranches[])
-        hasTranchesOnChain = poolInfo[8] || poolInfo.hasTranches || false; // Index 8 is hasTranches
-        tranchesArray = poolInfo[12] || poolInfo.tranches || [];
-        console.log('📊 On-chain pool check:', { 
-          hasTranchesOnChain, 
-          tranchesCount: tranchesArray.length,
-          tranches: tranchesArray.map((t: string) => t.substring(0, 10) + '...')
-        });
-      } catch (error: any) {
-        console.error('❌ Failed to check pool on-chain:', error.message || error);
-      }
-      
-      // Use on-chain data if available, otherwise fall back to pool state
-      // If tranches array has items, definitely has tranches
-      const actualHasTranches = hasTranchesOnChain || tranchesArray.length > 0 || pool.hasTranches;
-      
-      console.log('📊 Final decision:', { 
-        actualHasTranches, 
-        hasTranchesOnChain, 
-        tranchesArrayLength: tranchesArray.length,
-        poolHasTranches: pool.hasTranches
-      });
-      
+      // Get pool token balance directly
       let totalShares = 0n;
-      
-      if (actualHasTranches) {
-        // For pools with tranches, get shares from each tranche
-        // First try to get tranche IDs from pool state
-        let seniorTrancheId = pool.seniorTrancheId || pool.metadata?.seniorTrancheId;
-        let juniorTrancheId = pool.juniorTrancheId || pool.metadata?.juniorTrancheId;
-        
-        // If not in state, use the tranchesArray we just fetched
-        if ((!seniorTrancheId || !juniorTrancheId) && tranchesArray.length > 0) {
-          console.log('⚠️ Tranche IDs not in pool state, using on-chain tranches...');
-          console.log('📊 Found tranches on-chain:', tranchesArray.length);
-          
-          // If we don't have IDs, fetch tranche details to determine senior/junior
-          if (tranchesArray.length > 0 && !seniorTrancheId) {
-            // Try to determine which is senior by checking tranche type
-            for (const trancheId of tranchesArray) {
-              try {
-                const getTrancheABI = ["function getTranche(bytes32) external view returns (bytes32,uint8,string,address,uint256,uint256,uint256,uint256,bool)"];
-                const trancheContract = new ethers.Contract(poolManagerAddress, getTrancheABI, readOnlyProvider);
-                const trancheInfo = await trancheContract.getTranche(trancheId);
-                const trancheType = Number(trancheInfo[1] || trancheInfo.trancheType || 0);
-                
-                if (trancheType === 0 && !seniorTrancheId) {
-                  seniorTrancheId = trancheId;
-                  console.log('✅ Found Senior tranche:', seniorTrancheId);
-                } else if (trancheType === 1 && !juniorTrancheId) {
-                  juniorTrancheId = trancheId;
-                  console.log('✅ Found Junior tranche:', juniorTrancheId);
-                }
-              } catch (error) {
-                console.warn('Failed to check tranche type, using order:', error);
-                // Fallback: use order
-                if (!seniorTrancheId) {
-                  seniorTrancheId = tranchesArray[0];
-                  console.log('✅ Using first tranche as Senior (fallback):', seniorTrancheId);
-                }
-                if (tranchesArray.length > 1 && !juniorTrancheId) {
-                  juniorTrancheId = tranchesArray[1];
-                  console.log('✅ Using second tranche as Junior (fallback):', juniorTrancheId);
-                }
-                break; // Exit loop after fallback
-              }
-            }
-            
-            // Final fallback: just use order if still not set
-            if (!seniorTrancheId && tranchesArray.length > 0) {
-              seniorTrancheId = tranchesArray[0];
-            }
-            if (!juniorTrancheId && tranchesArray.length > 1) {
-              juniorTrancheId = tranchesArray[1];
-            }
-          }
-        }
-        
-        console.log('📊 Checking tranche shares:', { seniorTrancheId, juniorTrancheId });
-        
-        if (seniorTrancheId) {
-          try {
-            // Ensure tranche ID is bytes32 format
-            const seniorTrancheIdBytes32 = seniorTrancheId.startsWith('0x') && seniorTrancheId.length === 66
-              ? seniorTrancheId
-              : (seniorTrancheId.startsWith('0x') ? seniorTrancheId : `0x${seniorTrancheId}`);
-            
-            // If still not 66 chars, hash it
-            const finalSeniorId = seniorTrancheIdBytes32.length === 66 
-              ? seniorTrancheIdBytes32 
-              : ethers.id(seniorTrancheId);
-            
-            console.log('🔍 Fetching senior tranche shares:', { original: seniorTrancheId, bytes32: finalSeniorId });
-            const seniorShares = await poolManagerContract.getUserTrancheShares(finalSeniorId, address);
-            const sharesNum = BigInt(seniorShares.toString());
-            totalShares += sharesNum;
-            console.log('✅ Senior tranche shares:', ethers.formatEther(sharesNum), 'tokens');
-          } catch (error: any) {
-            console.error('❌ Failed to fetch senior tranche shares:', error.message || error);
-          }
-        } else {
-          console.warn('⚠️ Senior tranche ID not found');
-        }
-        
-        if (juniorTrancheId) {
-          try {
-            // Ensure tranche ID is bytes32 format
-            const juniorTrancheIdBytes32 = juniorTrancheId.startsWith('0x') && juniorTrancheId.length === 66
-              ? juniorTrancheId
-              : (juniorTrancheId.startsWith('0x') ? juniorTrancheId : `0x${juniorTrancheId}`);
-            
-            // If still not 66 chars, hash it
-            const finalJuniorId = juniorTrancheIdBytes32.length === 66 
-              ? juniorTrancheIdBytes32 
-              : ethers.id(juniorTrancheId);
-            
-            console.log('🔍 Fetching junior tranche shares:', { original: juniorTrancheId, bytes32: finalJuniorId });
-            const juniorShares = await poolManagerContract.getUserTrancheShares(finalJuniorId, address);
-            const sharesNum = BigInt(juniorShares.toString());
-            totalShares += sharesNum;
-            console.log('✅ Junior tranche shares:', ethers.formatEther(sharesNum), 'tokens');
-          } catch (error: any) {
-            console.error('❌ Failed to fetch junior tranche shares:', error.message || error);
-          }
-        } else {
-          console.warn('⚠️ Junior tranche ID not found');
-        }
-        
-        console.log('📊 Total shares from all tranches:', ethers.formatEther(totalShares), 'tokens');
-      } else {
-        // For simple pools, get shares directly
-        try {
-          console.log('🔍 Fetching simple pool shares...');
-          const shares = await poolManagerContract.getUserShares(poolIdBytes32, address);
-          totalShares = BigInt(shares.toString());
-          console.log('✅ Simple pool shares:', ethers.formatEther(totalShares));
-        } catch (error) {
-          console.warn('❌ Failed to fetch pool shares:', error);
-        }
+      try {
+        console.log('🔍 Fetching pool token balance...');
+        totalShares = await novaxContractService.getPoolTokenBalance(poolTokenAddress, address);
+        console.log('✅ Pool token balance:', ethers.formatUnits(totalShares, 18), 'tokens');
+      } catch (error: any) {
+        console.warn('❌ Failed to fetch pool token balance:', error.message || error);
       }
       
       const sharesFormatted = Number(ethers.formatEther(totalShares));
       setUserHoldings(sharesFormatted);
       
-      // Also fetch user investment amount
-      const getUserInvestmentABI = [
-        "function getUserTrancheInvestment(bytes32 _trancheId, address _user) external view returns (uint256)",
-        "function getUserInvestment(bytes32 _poolId, address _user) external view returns (uint256)"
-      ];
-      
-      const poolManagerInvestmentContract = new ethers.Contract(
-        poolManagerAddress,
-        getUserInvestmentABI,
-        readOnlyProvider
-      );
-      
+      // Fetch user investment amount (USDC, 6 decimals)
       let totalInvestment = 0n;
-      
-      if (pool.hasTranches) {
-        const seniorTrancheId = pool.seniorTrancheId || pool.metadata?.seniorTrancheId;
-        const juniorTrancheId = pool.juniorTrancheId || pool.metadata?.juniorTrancheId;
-        
-        if (seniorTrancheId) {
-          try {
-            const seniorTrancheIdBytes32 = seniorTrancheId.startsWith('0x') && seniorTrancheId.length === 66
-              ? seniorTrancheId
-              : ethers.id(seniorTrancheId);
-            const seniorInvestment = await poolManagerInvestmentContract.getUserTrancheInvestment(seniorTrancheIdBytes32, address);
-            totalInvestment += BigInt(seniorInvestment.toString());
-          } catch (error) {
-            console.warn('Failed to fetch senior tranche investment:', error);
-          }
-        }
-        
-        if (juniorTrancheId) {
-          try {
-            const juniorTrancheIdBytes32 = juniorTrancheId.startsWith('0x') && juniorTrancheId.length === 66
-              ? juniorTrancheId
-              : ethers.id(juniorTrancheId);
-            const juniorInvestment = await poolManagerInvestmentContract.getUserTrancheInvestment(juniorTrancheIdBytes32, address);
-            totalInvestment += BigInt(juniorInvestment.toString());
-          } catch (error) {
-            console.warn('Failed to fetch junior tranche investment:', error);
-          }
-        }
-      } else {
-        try {
-          const investment = await poolManagerInvestmentContract.getUserInvestment(poolIdBytes32, address);
-          totalInvestment = BigInt(investment.toString());
-        } catch (error) {
-          console.warn('Failed to fetch pool investment:', error);
-        }
+      try {
+        totalInvestment = await novaxContractService.getUserInvestment(poolIdBytes32, address);
+        console.log('✅ User investment:', ethers.formatUnits(totalInvestment, 6), 'USDC');
+      } catch (error: any) {
+        console.warn('Failed to fetch user investment:', error.message || error);
       }
       
-      const investmentFormatted = Number(ethers.formatEther(totalInvestment));
+      const investmentFormatted = Number(ethers.formatUnits(totalInvestment, 6)); // USDC has 6 decimals
       setUserInvestment(investmentFormatted);
       
       // Calculate projected annual interest based on APY
@@ -791,7 +714,7 @@ const PoolDetailPage: React.FC<PoolDetailPageProps> = ({ poolId, onBack }) => {
         setProjectedInterest(0);
       }
       
-      console.log(`✅ User holdings updated: ${sharesFormatted} tokens, Investment: ${investmentFormatted} TRUST`);
+      console.log(`✅ User holdings updated: ${sharesFormatted} tokens, Investment: ${investmentFormatted} USDC`);
       
       if (totalShares === 0n && totalInvestment === 0n) {
         console.warn('⚠️ No shares or investment found. This might be normal if you just invested and blockchain state hasn\'t updated yet.');
@@ -851,8 +774,8 @@ const PoolDetailPage: React.FC<PoolDetailPageProps> = ({ poolId, onBack }) => {
       console.log('📊 Calculating ROI from on-chain data...');
       
       // Get pool launch date from on-chain or use current date as fallback
-      const poolManagerAddress = getContractAddress('POOL_MANAGER');
-      const onChainPoolId = pool.hederaContractId || pool.mantlePoolId;
+      const poolManagerAddress = novaxContractAddresses.NOVAX_POOL_MANAGER;
+      const onChainPoolId = poolId; // Novax pools use poolId directly
       
       if (!onChainPoolId || !poolManagerAddress) {
         console.warn('⚠️ Missing pool ID or manager address for ROI calculation');
@@ -863,19 +786,14 @@ const PoolDetailPage: React.FC<PoolDetailPageProps> = ({ poolId, onBack }) => {
         ? onChainPoolId
         : ethers.id(onChainPoolId);
       
-      const readOnlyProvider = provider || new ethers.JsonRpcProvider(import.meta.env.VITE_MANTLE_TESTNET_RPC_URL || 'https://rpc.sepolia.mantle.xyz');
+      const readOnlyProvider = provider || new ethers.JsonRpcProvider(import.meta.env.VITE_RPC_URL || 'https://node.shadownet.etherlink.com');
       
-      // Get pool creation timestamp from contract
-      const getPoolABI = [
-        "function getPool(bytes32) external view returns (bytes32,address,string,string,uint256,uint256,uint256,uint256,bool,bool,uint256,bytes32[],bytes32[])"
-      ];
-      const poolManagerContract = new ethers.Contract(poolManagerAddress, getPoolABI, readOnlyProvider);
-      
+      // Get pool creation timestamp from Novax contract
       let poolCreatedAt: Date;
       try {
-        const poolInfo = await poolManagerContract.getPool(poolIdBytes32);
-        // Index 10 is createdAt (uint256 timestamp)
-        const createdAtTimestamp = poolInfo[10] || poolInfo.createdAt || 0n;
+        const poolData = await novaxContractService.getPool(poolIdBytes32);
+        // Pool struct has createdAt field
+        const createdAtTimestamp = poolData.createdAt || 0n;
         poolCreatedAt = createdAtTimestamp > 0n 
           ? new Date(Number(createdAtTimestamp) * 1000)
           : (pool.launchedAt ? new Date(pool.launchedAt) : new Date());
@@ -1000,8 +918,8 @@ const PoolDetailPage: React.FC<PoolDetailPageProps> = ({ poolId, onBack }) => {
       console.log('Pool ID:', pool.poolId);
       console.log('Redeem Amount:', amount, 'tokens');
 
-      const poolManagerAddress = getContractAddress('POOL_MANAGER');
-      const onChainPoolId = pool.hederaContractId || pool.mantlePoolId;
+      const poolManagerAddress = novaxContractAddresses.NOVAX_POOL_MANAGER;
+      const onChainPoolId = poolId; // Novax pools use poolId directly
 
       if (!onChainPoolId || !poolManagerAddress) {
         throw new Error('Pool not found on-chain');
@@ -1011,49 +929,15 @@ const PoolDetailPage: React.FC<PoolDetailPageProps> = ({ poolId, onBack }) => {
         ? onChainPoolId
         : ethers.id(onChainPoolId);
 
-      const amountInWei = ethers.parseEther(amount.toString());
-
       // Create contract instance
-      const poolManagerContract = new ethers.Contract(
-        poolManagerAddress,
-        PoolManagerABI,
-        signer
-      );
-
-      let redeemTx;
-      let redeemTxHash: string;
-
-      if (pool.hasTranches) {
-        // For pools with tranches, need to determine which tranche to redeem from
-        const trancheIdToUse = selectedTranche === 'senior'
-          ? (pool.seniorTrancheId || pool.metadata?.seniorTrancheId)
-          : (pool.juniorTrancheId || pool.metadata?.juniorTrancheId);
-
-        if (!trancheIdToUse) {
-          throw new Error(`${selectedTranche} tranche ID not found. Please refresh the page.`);
-        }
-
-        const trancheIdBytes32 = trancheIdToUse.startsWith('0x')
-          ? trancheIdToUse
-          : `0x${trancheIdToUse}`;
-
-        console.log('Redeeming from tranche:', trancheIdBytes32);
-        redeemTx = await poolManagerContract.redeemTrancheTokens(
-          poolIdBytes32,
-          trancheIdBytes32,
-          amountInWei
-        );
-      } else {
-        // For simple pools
-        console.log('Redeeming from simple pool...');
-        redeemTx = await poolManagerContract.redeemPoolTokens(
-          poolIdBytes32,
-          amountInWei
-        );
-      }
-
-      const redeemReceipt = await redeemTx.wait();
-      redeemTxHash = redeemReceipt.hash;
+      // Novax pools don't have tranches - use withdraw function
+      console.log('Withdrawing from pool...');
+      const sharesAmount = ethers.parseUnits(amount.toString(), 18); // PoolToken has 18 decimals
+      
+      const withdrawResult = await novaxContractService.withdraw(poolIdBytes32, sharesAmount);
+      const redeemTxHash = withdrawResult.txHash;
+      
+      console.log('Withdrawal successful! USDC received:', ethers.formatUnits(withdrawResult.usdcAmount, 6));
 
       console.log('✅ Redemption successful! Transaction hash:', redeemTxHash);
 
@@ -1086,6 +970,17 @@ const PoolDetailPage: React.FC<PoolDetailPageProps> = ({ poolId, onBack }) => {
   };
 
   const handleInvest = async () => {
+    // Check KYC status before investing
+    const isKYCApproved = user?.kycStatus?.toLowerCase() === 'approved';
+    if (!isKYCApproved) {
+      toast({
+        title: 'KYC Verification Required',
+        description: 'Please complete KYC verification to invest in pools.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     if (!isConnected || !address || !signer) {
       toast({
         title: 'Wallet Not Connected',
@@ -1106,11 +1001,11 @@ const PoolDetailPage: React.FC<PoolDetailPageProps> = ({ poolId, onBack }) => {
     }
 
     try {
-      // Initialize contract service
-      if (provider) {
-        mantleContractService.initialize(signer, provider);
+      // Initialize Novax contract service
+      if (provider && signer) {
+        novaxContractService.initialize(signer, provider);
       } else {
-        throw new Error('Provider not available');
+        throw new Error('Provider and signer not available');
       }
 
       toast({
@@ -1119,228 +1014,41 @@ const PoolDetailPage: React.FC<PoolDetailPageProps> = ({ poolId, onBack }) => {
         variant: 'default'
       });
 
-      // Step 1: Approve TRUST tokens for PoolManager
-      const poolManagerAddress = getContractAddress('POOL_MANAGER');
-      const trustTokenAddress = getContractAddress('TRUST_TOKEN');
-      const amountInWei = ethers.parseEther(amount.toString());
+      // Step 1: Approve USDC for PoolManager
+      const poolManagerAddress = novaxContractAddresses.NOVAX_POOL_MANAGER;
+      const usdcAmount = ethers.parseUnits(amount.toString(), 6); // USDC has 6 decimals
 
-      console.log('Approving TRUST tokens...');
-      const approveTxHash = await mantleContractService.approveTrust(poolManagerAddress, amountInWei);
-      console.log('TRUST tokens approved:', approveTxHash);
+      console.log('Approving USDC...');
+      const approveResult = await novaxContractService.approveUSDC(poolManagerAddress, usdcAmount);
+      console.log('USDC approved:', approveResult.txHash);
 
-      // Step 2: Verify pool exists on-chain and get pool details
-      // Get the on-chain poolId (bytes32) - stored in hederaContractId or mantlePoolId
-      const onChainPoolId = pool!.hederaContractId || pool!.mantlePoolId;
-      if (!onChainPoolId) {
-        console.error('Pool data:', {
-          poolId: pool!.poolId,
-          status: pool!.status,
-          hederaContractId: pool!.hederaContractId,
-          mantlePoolId: pool!.mantlePoolId,
-          launchedAt: pool!.launchedAt
-        });
-        toast({
-          title: 'Pool Not Launched',
-          description: `This pool (${pool!.name}) has not been launched on-chain yet. Status: ${pool!.status}. Please launch it from the Pool Management dashboard (AMC Dashboard > Pool Management) before investing.`,
-          variant: 'destructive'
-        });
-        throw new Error(`Pool has not been launched on-chain yet. Status: ${pool!.status}. Please launch the pool first from Pool Management.`);
-      }
-      
-      // The on-chain poolId should already be bytes32 format (0x...)
-      const poolIdBytes32 = onChainPoolId.startsWith('0x') 
-        ? onChainPoolId 
-        : `0x${onChainPoolId}`;
+      // Step 2: Get pool ID (bytes32 format)
+      // Note: Novax pools don't have tranches - they're single-asset pools
+      const poolIdBytes32 = poolId.startsWith('0x') && poolId.length === 66
+        ? poolId
+        : ethers.id(poolId);
       
       console.log('On-chain poolId:', poolIdBytes32);
       
-      // Define the function ABIs we need
-      const getPoolABI = [
-        "function getPool(bytes32) external view returns (bytes32,address,string,string,uint256,uint256,uint256,uint256,bool,bool,uint256,bytes32[],bytes32[])"
-      ];
-      const getTrancheABI = [
-        "function getTranche(bytes32) external view returns (bytes32,uint8,string,address,uint256,uint256,uint256,uint256,bool)"
-      ];
-      const investInPoolABI = [
-        "function investInPool(bytes32 _poolId, uint256 _amount) external"
-      ];
-      const investInTrancheABI = [
-        "function investInTranche(bytes32 _poolId, bytes32 _trancheId, uint256 _amount) external",
-        "event TrancheTokenIssued(bytes32 indexed poolId, bytes32 indexed trancheId, address indexed investor, uint256 amount)"
-      ];
-      
-      // Create PoolManager contract instance with the correct ABI
-      const poolManagerContract = new ethers.Contract(
-        poolManagerAddress,
-        [...getPoolABI, ...getTrancheABI, ...investInPoolABI, ...investInTrancheABI],
-        signer
-      );
-      
-      // Also create read-only contract for fetching tranche info (use provider from signer or create new one)
-      const readOnlyProvider = signer?.provider || provider || new ethers.JsonRpcProvider(import.meta.env.VITE_MANTLE_TESTNET_RPC_URL || 'https://rpc.sepolia.mantle.xyz');
-      const poolManagerReadOnly = new ethers.Contract(
-        poolManagerAddress,
-        [...getPoolABI, ...getTrancheABI],
-        readOnlyProvider
-      );
-      
       // Verify pool exists on-chain
       console.log('Verifying pool exists on-chain...');
-      let onChainPool: any;
-      let hasTranches = false;
-      let seniorTrancheId: string | undefined;
-      let juniorTrancheId: string | undefined;
-      let tranchesArray: string[] = [];
-      
       try {
-        onChainPool = await poolManagerContract.getPool(poolIdBytes32);
-        console.log('Raw on-chain pool data:', onChainPool);
-        
-        // Check if pool exists (poolId should not be zero hash)
-        const returnedPoolId = onChainPool[0] || onChainPool.poolId;
-        const zeroHash = '0x0000000000000000000000000000000000000000000000000000000000000000';
-        
-        if (!returnedPoolId || returnedPoolId === ethers.ZeroHash || returnedPoolId === zeroHash || returnedPoolId === '0x') {
-          throw new Error(`Pool not found on-chain. Returned poolId: ${returnedPoolId}`);
-        }
-        
-        // Extract pool data (getPool returns a tuple)
-        const poolId = onChainPool[0] || returnedPoolId;
-        const creator = onChainPool[1] || onChainPool.creator;
-        const name = onChainPool[2] || onChainPool.name;
-        const isActive = onChainPool[8] || onChainPool.isActive;
-        hasTranches = onChainPool[9] === true || onChainPool.hasTranches === true;
-        
-        // Extract tranches array (index 12 in the tuple)
-        tranchesArray = Array.isArray(onChainPool[12]) ? onChainPool[12] : (Array.isArray(onChainPool.tranches) ? onChainPool.tranches : []);
-        
+        const onChainPool = await novaxContractService.getPool(poolIdBytes32);
         console.log('✅ Pool verified on-chain:', {
-          poolId: poolId,
-          name: name,
-          creator: creator,
-          hasTranches: hasTranches,
-          isActive: isActive,
-          tranchesCount: Array.isArray(tranchesArray) ? tranchesArray.length : 0
+          poolId: onChainPool.id,
+          poolType: onChainPool.poolType, // 0 = RWA, 1 = RECEIVABLE
+          status: onChainPool.status, // 0 = ACTIVE, 1 = CLOSED, 2 = PAUSED
+          totalInvested: ethers.formatUnits(onChainPool.totalInvested, 6),
+          targetAmount: ethers.formatUnits(onChainPool.targetAmount, 6),
         });
         
-        if (!isActive) {
-          throw new Error('Pool exists but is not active');
-        }
-        
-        // If pool has tranches, fetch tranche IDs
-        if (hasTranches && Array.isArray(tranchesArray) && tranchesArray.length > 0) {
-          console.log('Fetching tranche details...', { tranchesCount: tranchesArray.length });
-          
-          // Fetch each tranche to determine which is senior and which is junior
-          for (let i = 0; i < tranchesArray.length; i++) {
-            const trancheId = tranchesArray[i];
-            try {
-              const trancheInfo = await poolManagerReadOnly.getTranche(trancheId);
-              console.log(`Tranche ${i} (${trancheId.substring(0, 10)}...):`, trancheInfo);
-              
-              // getTranche returns: (bytes32, uint8, string, address, uint256, uint256, uint256, uint256, bool)
-              // Index 1 is trancheType: 0 = SENIOR, 1 = JUNIOR
-              let trancheTypeRaw = trancheInfo[1];
-              if (trancheTypeRaw === undefined && trancheInfo.trancheType !== undefined) {
-                trancheTypeRaw = trancheInfo.trancheType;
-              }
-              
-              const trancheType = typeof trancheTypeRaw === 'bigint' 
-                ? Number(trancheTypeRaw) 
-                : (typeof trancheTypeRaw === 'number' 
-                  ? trancheTypeRaw 
-                  : Number(trancheTypeRaw || 0));
-              
-              // Also check the name field (index 2) - "Senior" or "Junior"
-              const trancheName = trancheInfo[2] || trancheInfo.name || '';
-              
-              console.log(`Tranche ${i}: id=${trancheId.substring(0, 10)}..., type=${trancheType} (raw: ${trancheTypeRaw}), name="${trancheName}"`);
-              
-              // Determine tranche type from both enum value and name
-              const isSenior = trancheType === 0 || trancheName.toLowerCase().includes('senior');
-              const isJunior = trancheType === 1 || trancheName.toLowerCase().includes('junior');
-              
-              if (isSenior && !seniorTrancheId) {
-                seniorTrancheId = trancheId;
-                console.log('✅ Found Senior Tranche ID:', seniorTrancheId);
-              } else if (isJunior && !juniorTrancheId) {
-                juniorTrancheId = trancheId;
-                console.log('✅ Found Junior Tranche ID:', juniorTrancheId);
-              } else if (isSenior && seniorTrancheId) {
-                console.warn(`Multiple senior tranches found! Keeping first: ${seniorTrancheId}, ignoring: ${trancheId}`);
-              } else if (isJunior && juniorTrancheId) {
-                console.warn(`Multiple junior tranches found! Keeping first: ${juniorTrancheId}, ignoring: ${trancheId}`);
-              } else {
-                // Fallback: use order (first = senior, second = junior) if type detection fails
-                if (i === 0 && !seniorTrancheId) {
-                  seniorTrancheId = trancheId;
-                  console.log('⚠️ Using first tranche as Senior (fallback):', seniorTrancheId);
-                } else if (i === 1 && !juniorTrancheId) {
-                  juniorTrancheId = trancheId;
-                  console.log('⚠️ Using second tranche as Junior (fallback):', juniorTrancheId);
-                } else {
-                  console.warn(`Could not determine tranche type for ${trancheId}: type=${trancheType}, name="${trancheName}"`);
-                }
-              }
-            } catch (trancheError) {
-              console.warn(`Failed to fetch tranche ${trancheId}:`, trancheError);
-            }
-          }
-          
-          console.log('Final tranche IDs after type detection:', { seniorTrancheId, juniorTrancheId });
-          
-          // If we still don't have both, use fallback: order-based assignment
-          // First tranche = Senior, Second tranche = Junior (this matches contract creation order)
-          if (!seniorTrancheId && tranchesArray.length > 0) {
-            seniorTrancheId = tranchesArray[0];
-            console.log('⚠️ Fallback: Using first tranche as Senior (by order):', seniorTrancheId);
-          }
-          if (!juniorTrancheId && tranchesArray.length > 1) {
-            juniorTrancheId = tranchesArray[1];
-            console.log('⚠️ Fallback: Using second tranche as Junior (by order):', juniorTrancheId);
-          } else if (!juniorTrancheId && tranchesArray.length === 1 && seniorTrancheId === tranchesArray[0]) {
-            // Edge case: only one tranche found, but we need both
-            console.warn('⚠️ Only one tranche found, cannot determine junior tranche');
-          }
-          
-          console.log('Final tranche IDs (with fallbacks):', { seniorTrancheId, juniorTrancheId });
-          
-          // Update pool state with tranche IDs if found
-          if (seniorTrancheId || juniorTrancheId) {
-            setPool(prevPool => {
-              if (!prevPool) return prevPool;
-              return {
-                ...prevPool,
-                seniorTrancheId: seniorTrancheId || prevPool.seniorTrancheId,
-                juniorTrancheId: juniorTrancheId || prevPool.juniorTrancheId,
-                metadata: {
-                  ...prevPool.metadata,
-                  seniorTrancheId: seniorTrancheId || prevPool.metadata?.seniorTrancheId,
-                  juniorTrancheId: juniorTrancheId || prevPool.metadata?.juniorTrancheId,
-                }
-              };
-            });
-            console.log('Updated pool with tranche IDs:', { seniorTrancheId, juniorTrancheId });
-          }
+        if (onChainPool.status !== 0) { // 0 = ACTIVE
+          throw new Error(`Pool exists but is not active. Status: ${onChainPool.status}`);
         }
       } catch (verifyError: any) {
         console.error('❌ Pool verification failed:', verifyError);
-        console.error('PoolId being checked:', poolIdBytes32);
-        console.error('Full error:', verifyError);
-        
-        // Check if it's a revert error or zero hash (pool doesn't exist)
-        if (verifyError.reason || verifyError.data || verifyError.message?.includes('revert') || verifyError.message?.includes('zero hash') || verifyError.message?.includes('Pool not found')) {
-          toast({
-            title: 'Pool Not Found On-Chain',
-            description: `This pool exists in the database but does not exist on-chain. This usually happens if the pool was created before on-chain creation was implemented, or if the creation transaction failed. Please delete this pool and create a new one from the Pool Management dashboard. Pool ID: ${poolIdBytes32.slice(0, 16)}...`,
-            variant: 'destructive',
-            duration: 15000
-          });
-          throw new Error(`Pool not found on-chain. Please delete this pool from the database and create a new one. Error: ${verifyError.reason || verifyError.message}`);
-        }
-        
         toast({
-          title: 'Pool Verification Failed',
+          title: 'Pool Not Found On-Chain',
           description: `Failed to verify pool on-chain: ${verifyError.message}. Please check your connection and try again.`,
           variant: 'destructive',
           duration: 10000
@@ -1348,82 +1056,11 @@ const PoolDetailPage: React.FC<PoolDetailPageProps> = ({ poolId, onBack }) => {
         throw verifyError;
       }
       
-      // Step 3: Invest in pool or tranche (hasTranches is already set above)
-      let investTxHash: string;
-      
-      if (hasTranches) {
-        // Pool has tranches - MUST use investInTranche
-        console.log(`Investing in ${selectedTranche} tranche...`);
-        
-        // Get tranche ID - prefer the ones we just fetched from on-chain
-        // Also try extracting from tranches array if needed
-        let trancheIdToUse = selectedTranche === 'senior' 
-          ? (seniorTrancheId || pool!.seniorTrancheId || pool!.metadata?.seniorTrancheId)
-          : (juniorTrancheId || pool!.juniorTrancheId || pool!.metadata?.juniorTrancheId);
-        
-        // Fallback: if still not found and we have tranches array, use order (first = senior, second = junior)
-        if (!trancheIdToUse && hasTranches && Array.isArray(tranchesArray) && tranchesArray.length > 0) {
-          if (selectedTranche === 'senior' && tranchesArray.length > 0) {
-            trancheIdToUse = tranchesArray[0];
-            console.log('⚠️ Fallback: Using first tranche as Senior:', trancheIdToUse);
-          } else if (selectedTranche === 'junior' && tranchesArray.length > 1) {
-            trancheIdToUse = tranchesArray[1];
-            console.log('⚠️ Fallback: Using second tranche as Junior:', trancheIdToUse);
-          }
-        }
-        
-        if (!trancheIdToUse) {
-          throw new Error(`${selectedTranche} tranche ID not found in pool data. Pool has tranches but tranche IDs are missing. Found tranches: ${tranchesArray?.length || 0}. Please refresh the page to reload pool data.`);
-        }
-        
-        const trancheIdBytes32 = trancheIdToUse.startsWith('0x') 
-          ? trancheIdToUse 
-          : `0x${trancheIdToUse}`;
-        
-        console.log('On-chain poolId:', poolIdBytes32);
-        console.log(`${selectedTranche} Tranche ID:`, trancheIdBytes32);
-        
-        const investTx = await poolManagerContract.investInTranche(
-          poolIdBytes32,
-          trancheIdBytes32,
-          amountInWei
-        );
-        const investReceipt = await investTx.wait();
-        investTxHash = investReceipt.hash;
-        
-        // Extract tranche ID from event if available
-        const trancheTokenIssuedEvent = investReceipt.logs.find((log: any) => {
-          try {
-            const parsed = poolManagerContract.interface.parseLog(log);
-            return parsed && parsed.name === 'TrancheTokenIssued';
-          } catch {
-            return false;
-          }
-        });
-        
-        if (trancheTokenIssuedEvent) {
-          const parsed = poolManagerContract.interface.parseLog(trancheTokenIssuedEvent);
-          const eventTrancheId = parsed?.args[1]; // trancheId from event
-          console.log('✅ Investment event found, tranche ID:', eventTrancheId);
-          
-          // Update pool state with tranche ID if not already set
-          if (selectedTranche === 'senior' && !pool.seniorTrancheId) {
-            setPool(prevPool => prevPool ? { ...prevPool, seniorTrancheId: eventTrancheId } : prevPool);
-          } else if (selectedTranche === 'junior' && !pool.juniorTrancheId) {
-            setPool(prevPool => prevPool ? { ...prevPool, juniorTrancheId: eventTrancheId } : prevPool);
-          }
-        }
-      } else {
-        // Simple pool without tranches - use investInPool
-        console.log('Investing in pool (no tranches)...');
-        
-        const investTx = await poolManagerContract.investInPool(
-          poolIdBytes32,
-          amountInWei
-        );
-        const investReceipt = await investTx.wait();
-        investTxHash = investReceipt.hash;
-      }
+      // Step 3: Invest in pool (Novax pools don't have tranches)
+      console.log('Investing in pool...');
+      const investResult = await novaxContractService.invest(poolIdBytes32, usdcAmount);
+      const investTxHash = investResult.txHash;
+      console.log('Investment successful! Shares received:', ethers.formatUnits(investResult.shares, 18));
 
       console.log('Investment transaction hash:', investTxHash);
 
@@ -1457,7 +1094,7 @@ const PoolDetailPage: React.FC<PoolDetailPageProps> = ({ poolId, onBack }) => {
         },
         body: JSON.stringify({
           amount: amount,
-          trancheType: selectedTranche === 'senior' ? 'SENIOR' : 'JUNIOR',
+          // Note: Novax pools don't have tranches
           transactionHash: investTxHash
         })
       });
@@ -1469,7 +1106,7 @@ const PoolDetailPage: React.FC<PoolDetailPageProps> = ({ poolId, onBack }) => {
 
       toast({
         title: 'Investment Successful',
-        description: `Successfully invested ${amount} TRUST tokens in ${selectedTranche} tranche`,
+        description: `Successfully invested ${amount} USDC in pool. Received ${ethers.formatUnits(investResult.shares, 18)} pool tokens.`,
         variant: 'default'
       });
 
@@ -1552,7 +1189,7 @@ const PoolDetailPage: React.FC<PoolDetailPageProps> = ({ poolId, onBack }) => {
           {/* Top Row: Logo and Wallet */}
           <div className="flex items-center justify-between py-4">
             <div className="flex items-center gap-3">
-              <span className="text-xl font-bold text-gray-900">TrustBridge</span>
+              <span className="text-xl font-bold text-gray-900">Novax Yield</span>
             </div>
             {address && (
               <div className="flex items-center gap-4">
@@ -1593,6 +1230,24 @@ const PoolDetailPage: React.FC<PoolDetailPageProps> = ({ poolId, onBack }) => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Key Facts (Centrifuge Style) */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Pool Status and Progress */}
+            <div className="bg-white border border-gray-200 rounded-lg p-6 mb-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Pool Status</h3>
+                <StatusBadge status={pool.status.toLowerCase()} size="md" showIcon={true} />
+              </div>
+              {pool.totalValue && (
+                <ProgressBar
+                  current={pool.totalValue * 0.75} // TODO: Get actual invested amount from pool
+                  target={pool.totalValue}
+                  showLabel={true}
+                  showPercentage={true}
+                  color="blue"
+                  size="md"
+                />
+              )}
+            </div>
+
             {/* Key Metrics - Centrifuge Style */}
             <div className="grid grid-cols-3 gap-4">
               <div className="bg-white border border-gray-200 rounded-lg p-6">
@@ -1786,7 +1441,7 @@ const PoolDetailPage: React.FC<PoolDetailPageProps> = ({ poolId, onBack }) => {
                     <Award className="w-6 h-6 text-blue-600" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-900">TrustBridge Pool Management</p>
+                    <p className="text-sm font-medium text-gray-900">Novax Yield Pool Management</p>
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -1813,7 +1468,7 @@ const PoolDetailPage: React.FC<PoolDetailPageProps> = ({ poolId, onBack }) => {
                 <div className="pt-4 border-t border-gray-200 mt-4">
                   <p className="text-sm text-gray-600 mb-3">Fund Description</p>
                   <p className="text-gray-900 leading-relaxed">
-                    {pool.description || `${pool.name} (the Fund) is a tokenized investment pool, open to Professional Investors. It invests in and holds real-world assets (RWA) to offer stable returns with minimized risk in combination with liquidity and market returns. Assets are held directly by the Fund and Asset Under Management (AUM) can be checked onchain. The fund issues its shares as pool tokens to investors. Investments and redemptions are processed in TRUST tokens.`}
+                    {pool.description || `${pool.name} (the Fund) is a tokenized investment pool, open to Professional Investors. It invests in and holds real-world assets (RWA) to offer stable returns with minimized risk in combination with liquidity and market returns. Assets are held directly by the Fund and Asset Under Management (AUM) can be checked onchain. The fund issues its shares as pool tokens to investors. Investments and redemptions are processed in USDC.`}
                   </p>
                 </div>
                 <div className="pt-4 border-t border-gray-200">
@@ -1821,15 +1476,15 @@ const PoolDetailPage: React.FC<PoolDetailPageProps> = ({ poolId, onBack }) => {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Investment Manager:</span>
-                      <span className="text-gray-900 font-medium">{pool.metadata?.investmentManager || 'TrustBridge Asset Management'}</span>
+                      <span className="text-gray-900 font-medium">{pool.metadata?.investmentManager || 'Novax Asset Management'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Fund Administrator:</span>
-                      <span className="text-gray-900 font-medium">{pool.metadata?.fundAdministrator || 'TrustBridge Services Ltd'}</span>
+                      <span className="text-gray-900 font-medium">{pool.metadata?.fundAdministrator || 'Novax Services Ltd'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Auditor:</span>
-                      <span className="text-gray-900 font-medium">{pool.metadata?.auditor || 'TrustBridge Audit Partners'}</span>
+                      <span className="text-gray-900 font-medium">{pool.metadata?.auditor || 'Novax Audit Partners'}</span>
                     </div>
                   </div>
                 </div>
@@ -1920,6 +1575,16 @@ const PoolDetailPage: React.FC<PoolDetailPageProps> = ({ poolId, onBack }) => {
                   Redeem
                 </button>
                 <button
+                  onClick={() => setActiveTab('sell')}
+                  className={`px-4 py-2 text-sm font-medium transition-colors ${
+                    activeTab === 'sell'
+                      ? 'text-blue-600 border-b-2 border-blue-600'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Sell
+                </button>
+                <button
                   onClick={() => setActiveTab('pending')}
                   className={`px-4 py-2 text-sm font-medium transition-colors ${
                     activeTab === 'pending'
@@ -1935,70 +1600,42 @@ const PoolDetailPage: React.FC<PoolDetailPageProps> = ({ poolId, onBack }) => {
               <div>
                 {activeTab === 'invest' && (
                   <div className="space-y-4">
-                    {/* Tranche Selection */}
-                    <div className="space-y-3">
-                      <p className="text-sm text-gray-600">Select Tranche</p>
-                    <div className="grid grid-cols-2 gap-3">
-                      <button
-                        onClick={() => setSelectedTranche('senior')}
-                        type="button"
-                        data-tranche-button="true"
-                        className={`p-4 rounded-lg border transition-all text-left focus:outline-none ${
-                          selectedTranche === 'senior'
-                            ? 'border-blue-400'
-                            : 'border-gray-200'
-                        }`}
-                        style={{ 
-                          backgroundColor: 'white',
-                          color: '#111827'
-                        } as React.CSSProperties}
-                      >
-                        <p className="text-sm font-medium text-gray-900">Senior</p>
-                        <p className="text-xs text-gray-600 mt-1">{pool.tranches.senior.apy}% APY</p>
-                        <p className="text-xs text-gray-500 mt-1">{pool.tranches.senior.percentage}% allocation</p>
-                      </button>
-                      <button
-                        onClick={() => setSelectedTranche('junior')}
-                        type="button"
-                        data-tranche-button="true"
-                        className={`p-4 rounded-lg border transition-all text-left focus:outline-none ${
-                          selectedTranche === 'junior'
-                            ? 'border-blue-400'
-                            : 'border-gray-200'
-                        }`}
-                        style={{ 
-                          backgroundColor: 'white',
-                          color: '#111827'
-                        } as React.CSSProperties}
-                      >
-                        <p className="text-sm font-medium text-gray-900">Junior</p>
-                        <p className="text-xs text-gray-600 mt-1">{pool.tranches.junior.apy}% APY</p>
-                        <p className="text-xs text-gray-500 mt-1">{pool.tranches.junior.percentage}% allocation</p>
-                      </button>
-                    </div>
-                    </div>
-
-                    {/* Investment Amount */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Investment Amount (TRUST)
-                      </label>
-                      <input
-                        type="number"
-                        value={investmentAmount}
-                        onChange={(e) => setInvestmentAmount(e.target.value)}
-                        placeholder={`Min: $${pool.minimumInvestment.toLocaleString()}`}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                    {/* Investment Calculator */}
+                    {pool.maturityDate && (
+                      <InvestmentCalculator
+                        apy={pool.expectedAPY}
+                        maturityDate={pool.maturityDate}
+                        minInvestment={pool.minimumInvestment}
+                        maxInvestment={pool.minimumInvestment * 100} // TODO: Get actual max from pool
+                        onCalculate={(amount, returns) => {
+                          setInvestmentAmount(amount.toString());
+                        }}
                       />
-                      <p className="text-xs text-gray-500 mt-1">
-                        Minimum investment: ${pool.minimumInvestment.toLocaleString()} TRUST
-                      </p>
-                    </div>
+                    )}
+
+                    {/* Investment Amount Input (if calculator not available) */}
+                    {!pool.maturityDate && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Investment Amount (USDC)
+                        </label>
+                        <input
+                          type="number"
+                          value={investmentAmount}
+                          onChange={(e) => setInvestmentAmount(e.target.value)}
+                          placeholder={`Min: $${pool.minimumInvestment.toLocaleString()}`}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Minimum investment: ${pool.minimumInvestment.toLocaleString()} USDC
+                        </p>
+                      </div>
+                    )}
 
                     <Button
                       onClick={handleInvest}
                       className="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-medium py-3 text-base"
-                      disabled={!isConnected}
+                      disabled={!isConnected || !investmentAmount || parseFloat(investmentAmount) < pool.minimumInvestment}
                     >
                       Invest
                     </Button>
@@ -2020,7 +1657,7 @@ const PoolDetailPage: React.FC<PoolDetailPageProps> = ({ poolId, onBack }) => {
                               {userInvestment > 0 && (
                                 <div className="flex justify-between items-center pt-2 border-t border-gray-200">
                                   <span className="text-sm text-gray-600">Total Invested</span>
-                                  <span className="text-sm font-semibold text-gray-900">{userInvestment.toFixed(2)} TRUST</span>
+                                  <span className="text-sm font-semibold text-gray-900">{userInvestment.toFixed(2)} USDC</span>
                                 </div>
                               )}
                               
@@ -2030,18 +1667,18 @@ const PoolDetailPage: React.FC<PoolDetailPageProps> = ({ poolId, onBack }) => {
                                   <div className="pt-2 border-t border-gray-200 space-y-2">
                                     <div className="flex justify-between items-center">
                                       <span className="text-sm text-gray-600">Actual Dividends Received</span>
-                                      <span className="text-sm font-semibold text-blue-600">+{(projectedROI?.actual?.dividendsReceived || 0).toFixed(2)} TRUST</span>
+                                      <span className="text-sm font-semibold text-blue-600">+{(projectedROI?.actual?.dividendsReceived || 0).toFixed(2)} USDC</span>
                                     </div>
                                     <div className="flex justify-between items-center">
                                       <span className="text-sm text-gray-600">Projected Dividends</span>
                                       <span className="text-sm font-semibold text-green-600 animate-pulse">
-                                        +{(realTimeROI?.projectedDividends || projectedROI?.projected?.projectedDividends || 0).toFixed(2)} TRUST
+                                        +{(realTimeROI?.projectedDividends || projectedROI?.projected?.projectedDividends || 0).toFixed(2)} USDC
                                       </span>
                                     </div>
                                     <div className="flex justify-between items-center">
                                       <span className="text-sm font-medium text-gray-700">Total Return</span>
                                       <span className="text-sm font-bold text-green-600">
-                                        +{(realTimeROI?.totalReturn || projectedROI?.projected?.totalReturn || 0).toFixed(2)} TRUST
+                                        +{(realTimeROI?.totalReturn || projectedROI?.projected?.totalReturn || 0).toFixed(2)} USDC
                                       </span>
                                     </div>
                                     <div className="flex justify-between items-center pt-1 border-t border-gray-200">
@@ -2087,17 +1724,17 @@ const PoolDetailPage: React.FC<PoolDetailPageProps> = ({ poolId, onBack }) => {
                                       <>
                                         <div className="flex justify-between items-center">
                                           <span className="text-sm text-gray-600">Actual Dividends Received</span>
-                                          <span className="text-sm font-semibold text-blue-600">+0.00 TRUST</span>
+                                          <span className="text-sm font-semibold text-blue-600">+0.00 USDC</span>
                                         </div>
                                         {projectedInterest > 0 ? (
                                           <>
                                             <div className="flex justify-between items-center">
                                               <span className="text-sm text-gray-600">Projected Annual Interest</span>
-                                              <span className="text-sm font-semibold text-green-600">+{projectedInterest.toFixed(2)} TRUST</span>
+                                              <span className="text-sm font-semibold text-green-600">+{projectedInterest.toFixed(2)} USDC</span>
                                             </div>
                                             <div className="flex justify-between items-center">
                                               <span className="text-sm text-gray-600">Projected Monthly</span>
-                                              <span className="text-sm font-semibold text-green-600">+{(projectedInterest / 12).toFixed(2)} TRUST</span>
+                                              <span className="text-sm font-semibold text-green-600">+{(projectedInterest / 12).toFixed(2)} USDC</span>
                                             </div>
                                           </>
                                         ) : (
@@ -2170,6 +1807,147 @@ const PoolDetailPage: React.FC<PoolDetailPageProps> = ({ poolId, onBack }) => {
                       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                         <p className="text-sm text-gray-600 text-center">
                           You don't have any pool tokens to redeem
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {activeTab === 'sell' && (
+                  <div className="space-y-4">
+                    {userHoldings > 0 ? (
+                      <>
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600">Available to Sell</span>
+                            <span className="text-sm font-semibold text-gray-900">{userHoldings.toFixed(2)} {poolTokenSymbol}</span>
+                          </div>
+                        </div>
+
+                        {/* Create Listing Form */}
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Amount to Sell ({poolTokenSymbol})
+                            </label>
+                            <input
+                              type="number"
+                              value={listingForm.amount}
+                              onChange={(e) => setListingForm({ ...listingForm, amount: e.target.value })}
+                              placeholder={`Max: ${userHoldings.toFixed(2)}`}
+                              max={userHoldings}
+                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Price Per Token (USDC)
+                            </label>
+                            <input
+                              type="number"
+                              step="0.000001"
+                              value={listingForm.pricePerToken}
+                              onChange={(e) => setListingForm({ ...listingForm, pricePerToken: e.target.value })}
+                              placeholder="e.g., 1.05"
+                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Min Purchase ({poolTokenSymbol})
+                              </label>
+                              <input
+                                type="number"
+                                value={listingForm.minPurchase}
+                                onChange={(e) => setListingForm({ ...listingForm, minPurchase: e.target.value })}
+                                placeholder="Optional"
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Max Purchase ({poolTokenSymbol})
+                              </label>
+                              <input
+                                type="number"
+                                value={listingForm.maxPurchase}
+                                onChange={(e) => setListingForm({ ...listingForm, maxPurchase: e.target.value })}
+                                placeholder="Optional"
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Expires In (Days) - Leave empty for no expiration
+                            </label>
+                            <input
+                              type="number"
+                              value={listingForm.deadline}
+                              onChange={(e) => setListingForm({ ...listingForm, deadline: e.target.value })}
+                              placeholder="e.g., 30"
+                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                            />
+                          </div>
+
+                          <Button
+                            onClick={handleCreateListing}
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 text-base"
+                            disabled={!isConnected || !listingForm.amount || !listingForm.pricePerToken}
+                          >
+                            List for Sale
+                          </Button>
+                        </div>
+
+                        {/* Active Listings */}
+                        <div className="pt-4 border-t border-gray-200">
+                          <h4 className="text-sm font-semibold text-gray-900 mb-3">Active Listings</h4>
+                          {loadingListings ? (
+                            <div className="text-center py-4">
+                              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                            </div>
+                          ) : marketplaceListings.length > 0 ? (
+                            <div className="space-y-2">
+                              {marketplaceListings.map((listing: any) => (
+                                <div key={listing.listingId} className="bg-white border border-gray-200 rounded-lg p-3">
+                                  <div className="flex justify-between items-center mb-2">
+                                    <span className="text-sm font-medium text-gray-900">
+                                      {ethers.formatUnits(listing.amount, 18)} {poolTokenSymbol}
+                                    </span>
+                                    <span className="text-sm text-gray-600">
+                                      ${ethers.formatUnits(listing.pricePerToken, 6)} per token
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-xs text-gray-500">
+                                      Total: ${ethers.formatUnits(listing.totalPrice, 6)} USDC
+                                    </span>
+                                    {listing.seller.toLowerCase() !== address?.toLowerCase() && (
+                                      <Button
+                                        onClick={() => handleBuyFromListing(listing.listingId, parseFloat(ethers.formatUnits(listing.amount, 18)))}
+                                        size="sm"
+                                        className="bg-green-600 hover:bg-green-700 text-white"
+                                      >
+                                        Buy
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-gray-500 text-center py-4">No active listings for this pool</p>
+                          )}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                        <p className="text-sm text-gray-600 text-center">
+                          You don't have any pool tokens to sell
                         </p>
                       </div>
                     )}

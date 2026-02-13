@@ -20,8 +20,8 @@
     "close": "إغلاق"
   },
   "header": {
-    "title": "TrustBridge",
-    "searchPlaceholder": "بحث TrustBridge",
+    "title": "Novax Yield",
+    "searchPlaceholder": "بحث Novax Yield",
     "connectWallet": "ربط المحفظة",
     "disconnectWallet": "قطع ربط المحفظة",
     "completeProfile": "إكمال الملف الشخصي",
@@ -43,7 +43,7 @@
     "title": "سوق الاكتشاف",
     "subtitle": "أصل متاح للتداول",
     "noAssets": "لم يتم العثور على أصول",
-    "noAssetsDescription": "لا توجد أصول متاحة حالياً على سلسلة Mantle",
+    "noAssetsDescription": "لا توجد أصول متاحة حالياً على سلسلة Etherlink",
     "allAssets": "جميع الأصول",
     "realWorldAssets": "أصول العالم الحقيقي",
     "verifiedAssets": "الأصول الم verified",

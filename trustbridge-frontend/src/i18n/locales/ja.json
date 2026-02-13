@@ -20,8 +20,8 @@
     "close": "閉じる"
   },
   "header": {
-    "title": "TrustBridge",
-    "searchPlaceholder": "TrustBridgeを検索",
+    "title": "Novax Yield",
+    "searchPlaceholder": "Novax Yieldを検索",
     "connectWallet": "ウォレットを接続",
     "disconnectWallet": "ウォレットを切断",
     "completeProfile": "プロフィールを完成",
@@ -43,7 +43,7 @@
     "title": "ディスカバリーマーケットプレイス",
     "subtitle": "取引可能な資産",
     "noAssets": "資産が見つかりません",
-    "noAssetsDescription": "Mantleブロックチェーン上に現在利用可能な資産はありません",
+    "noAssetsDescription": "Etherlinkブロックチェーン上に現在利用可能な資産はありません",
     "allAssets": "すべての資産",
     "realWorldAssets": "リアルワールド資産",
     "verifiedAssets": "検証済み資産",

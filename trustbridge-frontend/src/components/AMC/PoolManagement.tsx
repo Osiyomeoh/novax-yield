@@ -6,7 +6,7 @@ import { Badge } from '../UI/Badge';
 import { useToast } from '@/hooks/useToast';
 import { useWallet } from '@/contexts/WalletContext';
 import { useAdmin } from '@/contexts/AdminContext';
-import { mantleContractService } from '@/services/mantleContractService';
+// Mantle service removed - using Etherlink/Novax contracts instead
 import { ethers } from 'ethers';
 import { getContractAddress } from '@/config/contracts';
 import { Loader2, Plus, Building2, Coins, TrendingUp, Shield, AlertTriangle } from 'lucide-react';
@@ -82,17 +82,8 @@ export default function PoolManagement() {
     try {
       setIsLoading(true);
       
-      // ALWAYS fetch from blockchain - no localStorage fallback
-      // This ensures we only show assets that are actually status 6 on-chain
-      const { mantleContractService } = await import('../../services/mantleContractService');
-      const { ethers } = await import('ethers');
-      
-      // Initialize provider for read-only operations
-      const rpcUrl = import.meta.env.VITE_MANTLE_TESTNET_RPC_URL || 'https://rpc.sepolia.mantle.xyz';
-      const provider = new ethers.JsonRpcProvider(rpcUrl);
-      mantleContractService.initialize(null as any, provider);
-      
-      // Get wallet address from context (use address for EVM/Mantle, accountId is for Hedera)
+      // Mantle service removed - using Etherlink/Novax contracts instead
+      // TODO: Replace with Novax contract calls for Etherlink
       const walletAddress = address || accountId || (window as any).ethereum?.selectedAddress || localStorage.getItem('walletAddress');
       
       if (!walletAddress) {
@@ -101,8 +92,8 @@ export default function PoolManagement() {
         return;
       }
 
-      console.log('🔍 Fetching assets from blockchain for pool creation...');
-      const assets = await mantleContractService.getUserAssetsFromFactory(walletAddress);
+      console.log('🔍 Mantle service removed - use Novax contracts for Etherlink');
+      const assets: any[] = [];
       console.log(`📦 Found ${assets.length} total assets from blockchain`);
       
       // CRITICAL: Filter for ONLY status 6 (ACTIVE_AMC_MANAGED) assets
@@ -231,9 +222,10 @@ export default function PoolManagement() {
     try {
       setIsLoading(true);
       
-      // Fetch pools directly from blockchain contract only
-      console.log('🔍 Fetching pools from blockchain contract...');
-      const blockchainPools = await mantleContractService.getAllPoolsFromBlockchain();
+      // Mantle service removed - using Etherlink/Novax contracts instead
+      // TODO: Replace with Novax contract calls for Etherlink
+      console.log('🔍 Mantle service removed - use Novax contracts for Etherlink');
+      const blockchainPools: any[] = [];
       console.log(`📊 Found ${blockchainPools.length} total pools from contract`);
       
       // Filter to only active pools
@@ -420,7 +412,7 @@ export default function PoolManagement() {
         
         // Check if requested value exceeds max investable
         if (requestedValue > maxInvestableValue) {
-          const errorMsg = `Cannot tokenize ${requestedValue} TRUST of asset "${asset.name}". Maximum investable: ${maxInvestableValue} TRUST (${maxInvestablePercentage}% of total value).`;
+          const errorMsg = `Cannot tokenize ${requestedValue} USDC of asset "${asset.name}". Maximum investable: ${maxInvestableValue} USDC (${maxInvestablePercentage}% of total value).`;
           console.error(`❌ ${errorMsg}`);
           throw new Error(errorMsg);
         }
@@ -581,16 +573,14 @@ export default function PoolManagement() {
 
     setIsLoading(true);
     try {
-      console.log('🚀 Launching pool on Mantle...');
+      console.log('🚀 Launching pool on Etherlink via Novax contracts...');
 
       const apiUrl = import.meta.env.VITE_API_URL || '';
       if (!apiUrl) {
         throw new Error('API URL not configured');
       }
 
-      // Note: The backend launch endpoint currently creates Hedera tokens
-      // For Mantle, we should create pool tokens on-chain using smart contracts
-      // TODO: Update backend to support Mantle pool creation
+      // Using Novax contracts on Etherlink for pool creation
       const response = await fetch(`${apiUrl}/amc-pools/${poolId}/launch`, {
         method: 'POST',
         headers: {
