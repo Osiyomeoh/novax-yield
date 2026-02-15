@@ -973,36 +973,8 @@ You need test tokens to pay for transactions on Testnet:
 4. Connect to platform
 5. Browse pools and start investing
 
----
 
-## Team
 
-### **Core Team**
-
-*[Team bios to be added - please provide team member information]*
-
-#### **Founders & Leadership**
-- **Samuel Aleonomoh**
-  - **Role**: Founder & CEO
-  - **Bio**: Visionary leader building Africa's first real-world asset tokenization platform on blockchain
-  - **Contact**: [samuelaleonomoh5@gmail.com](mailto:samuelaleonomoh5@gmail.com)
-
-#### **Design Team**
-- **Blessing**
-  - **Role**: Designer
-  - **Bio**: Creative designer crafting intuitive user experiences for Novax Yield
-  - **Contact**: [samuelaleonomoh5@gmail.com](mailto:samuelaleonomoh5@gmail.com)
-
-### **Contact Information**
-
-- **General Inquiries**: [samuelaleonomoh5@gmail.com](mailto:samuelaleonomoh5@gmail.com)
-- **Business Partnerships**: [samuelaleonomoh5@gmail.com](mailto:samuelaleonomoh5@gmail.com)
-- **Technical Support**: [samuelaleonomoh5@gmail.com](mailto:samuelaleonomoh5@gmail.com)
-- **Media & Press**: [samuelaleonomoh5@gmail.com](mailto:samuelaleonomoh5@gmail.com)
-- **Website**: [novaxyield.com](https://novaxyield.com)
-- **GitHub**: [github.com/Osiyomeoh/TrustBridgeAfrica](https://github.com/Osiyomeoh/TrustBridgeAfrica)
-
----
 
 ## Compliance Declaration
 
@@ -1103,7 +1075,7 @@ Novax Yield is designed to implement the following compliance measures when oper
 
 ### **Regulatory Updates**
 
-Novax Yield (TrustBridge) is committed to maintaining compliance with evolving regulatory frameworks when operating on mainnet with real assets. For the latest regulatory information and compliance updates, please contact us at [samuelaleonomoh5@gmail.com](mailto:samuelaleonomoh5@gmail.com).
+Novax Yield  is committed to maintaining compliance with evolving regulatory frameworks when operating on mainnet with real assets. For the latest regulatory information and compliance updates.
 
 ---
 
@@ -1113,5 +1085,4 @@ Novax Yield (TrustBridge) is committed to maintaining compliance with evolving r
 
 ---
 
-© 2026 Novax Yield (TrustBridge). All rights reserved.  
-**Live**: [tbafrica.xyz](https://tbafrica.xyz) | **Docs**: [Documentation](https://tbafrica.xyz/documentation)
+© 2026 Novax Yield. All rights reserved.  
