@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { ethers } from 'ethers';
 import { Wallet, Lock, TrendingUp, Clock, DollarSign, AlertCircle, CheckCircle, Info, ArrowRight } from 'lucide-react';
-import { Card, CardContent } from '../UI/card';
+import { Card, CardContent } from '../UI/Card';
 import Button from '../UI/Button';
 import { useToast } from '../../hooks/useToast';
 import { useWallet } from '../../contexts/PrivyWalletContext';
