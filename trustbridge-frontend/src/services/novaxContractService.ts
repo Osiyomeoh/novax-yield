@@ -460,11 +460,16 @@ export class NovaxContractService {
       metadataCIDBytes32 = ethers.hexlify(metadataCID);
     }
 
+    // createReceivable requires 5 parameters: importer, amountUSD, dueDate, metadataCID, importerApprovalId
+    // importerApprovalId can be zero (bytes32(0)) if not using ImporterApproval contract
+    const importerApprovalId = ethers.ZeroHash; // Default to zero if not provided
+    
     const tx = await factory.createReceivable(
       importer,
       amountUSD,
       dueDate,
-      metadataCIDBytes32
+      metadataCIDBytes32,
+      importerApprovalId
     );
 
     const receipt = await waitForTransaction(tx, this.provider, 180);

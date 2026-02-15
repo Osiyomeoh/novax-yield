@@ -662,19 +662,7 @@ contract NovaxPoolManager is AccessControl, Pausable, ReentrancyGuard {
         emit PaymentRecorded(_poolId, _paymentAmount, pool.totalPaid, block.timestamp);
     }
 
-    /**
-     * @notice Update pool maturity status
-     * @param _poolId Pool ID
-     * @dev Simplified - maturity can be checked in getPool() or handled off-chain
-     */
-    // function updateMaturity(bytes32 _poolId) external {
-    //     require(poolExists[_poolId], "Pool does not exist");
-    //     Pool storage pool = pools[_poolId];
-    //     if (block.timestamp >= pool.maturityDate && pool.status == uint8(PoolStatus.FUNDED)) {
-    //         pool.status = uint8(PoolStatus.MATURED);
-    //         emit PoolMatured(_poolId, pool.maturityDate, block.timestamp);
-    //     }
-    // }
+    // Maturity status is checked in getPool() or handled off-chain
 
     /**
      * @notice Mark pool as defaulted (called by AMC)
@@ -818,75 +806,9 @@ contract NovaxPoolManager is AccessControl, Pausable, ReentrancyGuard {
         }
     }
 
-    /**
-     * @notice Get pools by status (for AMC/Admin dashboard)
-     * @dev Use getPoolsPaginated() and filter by status on frontend
-     * TODO: Re-enable if contract size allows, or move to library
-     */
-    // function getPoolsByStatus(PoolStatus _status) external view returns (
-    //     bytes32[] memory poolIds,
-    //     Pool[] memory pools_,
-    //     uint256 count
-    // ) { ... }
-
-    /**
-     * @notice Get pools that need payment recording (for AMC)
-     * @dev Use getPoolsPaginated() and filter on frontend
-     * Filter: (status == FUNDED || status == MATURED) && paymentStatus != FULL
-     */
-    // function getPoolsNeedingPayment() external view returns (...) { ... }
-
-    /**
-     * @notice Get pools ready for yield distribution (for Admin)
-     * @dev Use getPoolsPaginated() and filter on frontend
-     * Filter: status == PAID && paymentStatus == FULL
-     */
-    // function getPoolsReadyForYield() external view returns (...) { ... }
-
-    /**
-     * @notice Pay platform fee in NVX (with discount)
-     * @param _poolId Pool ID
-     * @param _feeAmount Fee amount in USDC (6 decimals)
-     * @dev Temporarily commented out to reduce contract size
-     * TODO: Re-enable after contract size optimization or move to separate contract
-     */
-    // function payFeeInNVX(bytes32 _poolId, uint256 _feeAmount) external nonReentrant whenNotPaused {
-    //     require(poolExists[_poolId], "Pool does not exist");
-    //     Pool storage pool = pools[_poolId];
-    //     address exporter = _getExporterFromAsset(pool.assetId, pool.poolType, pool.assetFactory);
-    //     require(msg.sender == exporter, "Only exporter can pay fees");
-    //     require(nvxToken != address(0), "NVX token not set");
-
-    //     // Calculate discount (30%)
-    //     uint256 discount = (_feeAmount * 30) / 100;
-    //     uint256 discountedAmount = _feeAmount - discount;
-
-    //     // Calculate NVX equivalent (assuming 1:1 for simplicity, or use oracle)
-    //     // For now: 1 USDC = 1 NVX (can be updated with price oracle)
-    //     uint256 nvxAmount = discountedAmount * 1e12; // Convert from 6 decimals to 18 decimals
-
-    //     // Transfer NVX
-    //     IERC20(nvxToken).safeTransferFrom(exporter, platformTreasury, nvxAmount);
-
-    //     emit FeePaidInToken(_poolId, exporter, _feeAmount, discount, block.timestamp);
-    // }
-
-    /**
-     * @notice Close a pool
-     * @param _poolId Pool ID
-     * @dev Temporarily commented out to reduce contract size
-     * TODO: Re-enable or handle pool closure differently
-     */
-    // function closePool(bytes32 _poolId) external onlyRole(ADMIN_ROLE) {
-    //     require(poolExists[_poolId], "Pool does not exist");
-    //     Pool storage pool = pools[_poolId];
-    //     require(pool.status == uint8(PoolStatus.ACTIVE), "Pool is not active");
-
-    //     pool.status = uint8(PoolStatus.CLOSED);
-    //     pool.closedAt = block.timestamp;
-
-    //     emit PoolClosed(_poolId, pool.totalInvested, block.timestamp);
-    // }
+    // Note: Filter pools by status using getPoolsPaginated() on frontend
+    // - Pools needing payment: (status == FUNDED || status == MATURED) && paymentStatus != FULL
+    // - Pools ready for yield: status == PAID && paymentStatus == FULL
 
     /**
      * @notice Set RWA factory address
